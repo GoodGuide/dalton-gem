@@ -74,7 +74,7 @@ describe Datomizer::Database do
     end
 
     describe '#entity(entity_id)' do
-      let(:entity) {d.entity(entity_id)}
+      let(:entity) { d.entity(entity_id) }
 
       it 'fetches an entity from the database' do
         expect(entity[attribute]).to eql(value)
@@ -82,8 +82,8 @@ describe Datomizer::Database do
     end
 
     describe '#retrieve(query)' do
-      let(:results) {d.retrieve(query)}
-      let(:entity) {entities.first}
+      let(:results) { d.retrieve(query) }
+      let(:entity) { results.first }
 
       it 'runs a query and retrieves entities' do
         expect(results.size).to eql(1)
@@ -116,6 +116,8 @@ describe Datomizer::Database do
       end
     end
   end
+
+
 end
 
 
