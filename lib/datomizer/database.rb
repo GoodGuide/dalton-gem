@@ -28,8 +28,8 @@ module Datomizer
     end
 
     def transact(datoms)
-      datoms = Zweikopf::Transformer.from_ruby(datoms) if datoms.is_a?(Array)
-      result = TransactionResult.new(@dbc.transact(datoms).get)
+      data = self.class.convert_datoms(datoms)
+      result = TransactionResult.new(@dbc.transact(data).get)
       @db = result.db_after
       result
     rescue Java::JavaUtilConcurrent::ExecutionException => e
@@ -57,6 +57,17 @@ module Datomizer
     def retract(entity)
       entity_id = entity.is_a?(Entity) ? entity.id : entity
       transact(Zweikopf::Transformer.from_ruby([[:'db.fn/retractEntity', entity_id]]))
+    end
+
+    def self.convert_datoms(datoms)
+      case datoms
+        when Array
+          Zweikopf::Transformer.from_ruby(datoms)
+        when String
+          Utility.read_edn(datoms)
+        else
+          datoms
+      end
     end
 
     def self.convert_query(q)
