@@ -11,7 +11,9 @@ module Datomizer
   autoload :Database, File.join(File.dirname(__FILE__), 'datomizer', 'database')
   autoload :Entity, File.join(File.dirname(__FILE__), 'datomizer', 'entity')
   autoload :TransactionResult, File.join(File.dirname(__FILE__), 'datomizer', 'transaction_result')
+  autoload :Marshal, File.join(File.dirname(__FILE__), 'datomizer', 'marshal')
   autoload :Utility, File.join(File.dirname(__FILE__), 'datomizer', 'utility')
+  autoload :Translation, File.join(File.dirname(__FILE__), 'datomizer', 'translation')
 end
 
 # We need to shut down the Datomic driver and Clojure runtime

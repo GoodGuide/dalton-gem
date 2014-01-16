@@ -32,5 +32,9 @@ module Datomizer
       end
     end
 
+    def clojure_equal?(one, other)
+      run_clojure('clojure.core/=', one, other)
+    end
+
   end
 end

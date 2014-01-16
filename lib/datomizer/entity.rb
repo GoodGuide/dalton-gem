@@ -28,5 +28,9 @@ module Datomizer
     def id
       get(:'db/id')
     end
+
+    def ==(other)
+      other.instance_of?(self.class) && Utility.clojure_equal?(datomic_entity, other.datomic_entity)
+    end
   end
 end
