@@ -21,16 +21,21 @@ describe Datomizer::Database do
     let(:value) {'This is a test entity.'}
 
     it "should store and retrieve data" do
-      d.transact([{
+      transaction_result = d.transact([{
         :'db/id' => Datomizer::Database.tempid,
         attribute => value
       }])
 
-      result = d.q([:find, :'?e', :where, [:'?e', attribute, value]])
-      expect(result).to be_a(Set)
-      expect(result.size).to eq(1)
+      expect(transaction_result.db_before).to be_a(Java::Datomic::Database)
+      expect(transaction_result.db_after).to be_a(Java::Datomic::Database)
+      expect(transaction_result.tx_data).to be_a(Array)
+      expect(transaction_result.tempids).to be_a(Hash)
 
-      entity_id = result.first.first
+      query_result = d.q([:find, :'?e', :where, [:'?e', attribute, value]])
+      expect(query_result).to be_a(Set)
+      expect(query_result.size).to eq(1)
+
+      entity_id = query_result.first.first
       entity = d.entity(entity_id)
 
       expect(entity[attribute]).to eql(value)

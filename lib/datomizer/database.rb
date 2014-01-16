@@ -28,9 +28,9 @@ module Datomizer
 
     def transact(datoms)
       datoms = Zweikopf::Transformer.from_ruby(datoms) if datoms.is_a?(Array)
-      result = @dbc.transact(datoms).get
-      @db = result.get(Java::ClojureLang::Keyword.intern('db-after'))
-      result # TODO: Wrap result to make it more usable from ruby.
+      result = TransactionResult.new(@dbc.transact(datoms).get)
+      @db = result.db_after
+      result
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise "Transaction failed: #{e.getMessage}"
     end
@@ -54,7 +54,7 @@ module Datomizer
     end
 
     def self.convert_entity(e)
-      ::Datomizer::Entity.new(e)
+      Entity.new(e)
     end
 
     def self.tempid(id=1)

@@ -10,6 +10,7 @@ require 'zweikopf'
 module Datomizer
   autoload :Database, File.join(File.dirname(__FILE__), 'datomizer', 'database')
   autoload :Entity, File.join(File.dirname(__FILE__), 'datomizer', 'entity')
+  autoload :TransactionResult, File.join(File.dirname(__FILE__), 'datomizer', 'transaction_result')
 end
 
 # We need to shut down the Datomic driver and Clojure runtime
