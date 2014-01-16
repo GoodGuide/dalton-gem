@@ -82,8 +82,12 @@ module Datomizer
       Entity.new(e)
     end
 
-    def self.tempid(id=1)
-      Java::Datomic::Peer.tempid(':db.part/user', id * -1)
+    def self.tempid(partition='db.part/user', id=nil)
+      if id
+        Java::Datomic::Peer.tempid(partition, id)
+      else
+        Java::Datomic::Peer.tempid(partition)
+      end
     end
   end
 end
