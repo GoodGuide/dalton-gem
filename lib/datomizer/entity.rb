@@ -24,5 +24,9 @@ module Datomizer
     def keys
       datomic_entity.keySet.to_a
     end
+
+    def id
+      get(:'db/id')
+    end
   end
 end

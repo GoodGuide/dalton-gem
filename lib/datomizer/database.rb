@@ -20,6 +20,7 @@ module Datomizer
     def connect
       @dbc = Java::Datomic::Peer.connect(uri) or
         raise "Unable to connect to database at \"#{uri}\"."
+      refresh
     end
 
     def refresh
@@ -36,20 +37,33 @@ module Datomizer
     end
 
     def q(query)
-      raw_result = Java::Datomic::Peer.q(self.class.convert_query(query), db)
-      self.class.convert_result(raw_result)
+      result = Java::Datomic::Peer.q(self.class.convert_query(query), db)
+      self.class.convert_query_result(result)
+    rescue Java::JavaUtilConcurrent::ExecutionException => e
+      raise "Query failed: #{e.getMessage}"
     end
 
     def entity(entity_id)
       raw_entity = db.entity(entity_id)
       self.class.convert_entity(raw_entity)
+    rescue Java::JavaUtilConcurrent::ExecutionException => e
+      raise "Entity retrieval failed: #{e.getMessage}"
+    end
+
+    def retrieve(query)
+      q(query).map { |result| entity(result.first) }
+    end
+
+    def retract(entity)
+      entity_id = entity.is_a?(Entity) ? entity.id : entity
+      transact(Zweikopf::Transformer.from_ruby([[:'db.fn/retractEntity', entity_id]]))
     end
 
     def self.convert_query(q)
       Zweikopf::Transformer.from_ruby(q)
     end
 
-    def self.convert_result(result)
+    def self.convert_query_result(result)
       Set.new(result.map(&:to_a))
     end
 
