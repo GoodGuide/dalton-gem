@@ -5,11 +5,11 @@ module Datomizer
 
     def run_clojure(namespaced_function, *arguments)
       namespace, function = namespaced_function.split('/', 2)
-      Java::ClojureLang::RT.var(namespace, function).fn().invoke(*arguments)
+      Java::ClojureLang::RT.var(namespace, function).fn.invoke(*arguments)
     end
 
     def require_clojure(namespace)
-      require_function = Java::ClojureLang::RT.var("clojure.core", "require").fn()
+      require_function = Java::ClojureLang::RT.var("clojure.core", "require").fn
       require_function.invoke(Java::ClojureLang::Symbol.intern(namespace))
     end
 
@@ -27,13 +27,17 @@ module Datomizer
 
     def rubify_edn(edn)
       data = read_edn(edn)
-      Zweikopf::Transformer.from_clj(data) do |x|
+      Translation.from_clj(data) do |x|
         x.is_a?(Java::ClojureLang::Symbol) ? x.to_s.to_sym : x
       end
     end
 
     def clojure_equal?(one, other)
       run_clojure('clojure.core/=', one, other)
+    end
+
+    def to_edn(clojure_data)
+      run_clojure('clojure.core/pr-str', clojure_data)
     end
 
   end

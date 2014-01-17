@@ -1,5 +1,4 @@
-require 'rspec'
-require_relative('../../lib/datomizer')
+require 'spec_helper'
 
 describe Datomizer::Marshal do
 
@@ -25,6 +24,7 @@ describe Datomizer::Marshal do
                    :'db/valueType' => :'db.type/ref',
                    :'db/cardinality' => :'db.cardinality/one',
                    :'db/doc' => "A reference attribute for testing marshalling",
+                   :'db/isComponent' => true,
                    :'db.install/_attribute' => :'db.part/db',
                   }])
     end
@@ -33,13 +33,18 @@ describe Datomizer::Marshal do
       let(:value) {{:a => 'fnord'}}
 
       it "should store and retrieve map values" do
-        pending "tomorrow"
-
         d.transact([{:'db/id' => Datomizer::Database.tempid,
-                     :'test/stuff' => value
+                     :'test/stuff' => Datomizer::Marshal.collection_to_datoms(value)
                     }])
-        entity = d.retrieve(find: :'?e', where: [:'?e', :'db/stuff'])
-        expect(entity[:'test/stuff']).to eql(value)
+
+        entities = d.retrieve([:find, :'?e', :where, [:'?e', :'test/stuff']])
+        expect(entities.size).to eq(1)
+        entity = entities.first
+
+        entity_edn = Datomizer::Utility.to_edn(entity.datomic_entity.touch)
+
+        data = Datomizer::Marshal.entity_to_data(entity)
+        expect(data[:'test/stuff']).to eq(value)
       end
     end
 

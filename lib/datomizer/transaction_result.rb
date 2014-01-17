@@ -17,7 +17,7 @@ module Datomizer
     end
 
     def tempids
-      Zweikopf::Transformer.from_clj(@result_map.get(Java::Datomic::Connection.TEMPIDS))
+      Translation.from_clj(@result_map.get(Java::Datomic::Connection.TEMPIDS))
     end
   end
 end

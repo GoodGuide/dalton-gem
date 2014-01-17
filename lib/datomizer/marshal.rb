@@ -68,6 +68,32 @@ module Datomizer
         :db/isComponent true
         :db/doc "Non-scalar map entry value."
         :db.install/_attribute :db.part/db}]
-      EDN
+    EDN
+
+    module_function
+
+    def collection_to_datoms(data, partition=:'db.part/user')
+      {:'db/id' => Datomizer::Database.tempid(partition),
+       :'coll/type' => :'coll/map',
+       :'map/entry' => data.map { |key, value|
+         {:'db/id' => Datomizer::Database.tempid(partition),
+          :'map/key' => Translation.from_ruby(key),
+          :'map/str-val' => value.to_s
+         }}}
+    end
+
+    def entity_to_data(entity)
+      entity_hash_to_data(entity.to_h)
+    end
+
+    def entity_hash_to_data(entity_hash)
+      Hash[entity_hash.map{|k,v| [k, decode(v)]}]
+    end
+
+    def decode(value)
+      value.is_a?(Hash) && value[:'coll/type'] == :'coll/map' or return value
+      Hash[value[:'map/entry'].map{|entry| [entry[:'map/key'], entry[:'map/str-val']]}]
+    end
+
   end
 end

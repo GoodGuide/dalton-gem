@@ -1,5 +1,4 @@
-require 'rspec'
-require_relative('../../lib/datomizer')
+require 'spec_helper'
 
 describe Datomizer::Database do
 
@@ -31,7 +30,7 @@ describe Datomizer::Database do
     describe '#transact(datoms)' do
 
       it 'stores data' do
-        expect(d.q(query).size).to eql(1)
+        expect(d.q(query).size).to eq(1)
       end
 
       it 'returns a transaction result' do
@@ -56,7 +55,7 @@ describe Datomizer::Database do
           entity_id = query_result.first.first
           entity = d.entity(entity_id)
 
-          expect(entity[attribute]).to eql(value)
+          expect(entity[attribute]).to eq(value)
         end
       end
 
@@ -77,7 +76,7 @@ describe Datomizer::Database do
       let(:entity) { d.entity(entity_id) }
 
       it 'fetches an entity from the database' do
-        expect(entity[attribute]).to eql(value)
+        expect(entity[attribute]).to eq(value)
       end
     end
 
@@ -86,8 +85,8 @@ describe Datomizer::Database do
       let(:entity) { results.first }
 
       it 'runs a query and retrieves entities' do
-        expect(results.size).to eql(1)
-        expect(entity[attribute]).to eql(value)
+        expect(results.size).to eq(1)
+        expect(entity[attribute]).to eq(value)
       end
     end
 
@@ -95,7 +94,7 @@ describe Datomizer::Database do
 
       shared_examples_for "a retraction" do
         it 'retracts the entity' do
-          expect(d.q(query).size).to eql(0)
+          expect(d.q(query).size).to eq(0)
         end
       end
 
