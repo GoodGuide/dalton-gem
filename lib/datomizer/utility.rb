@@ -42,3 +42,9 @@ module Datomizer
 
   end
 end
+
+class Object
+  def to_edn
+    Datomizer::Utility.to_edn(self)
+  end
+end

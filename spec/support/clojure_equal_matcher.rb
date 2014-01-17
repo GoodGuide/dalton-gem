@@ -35,7 +35,7 @@ MESSAGE
         private
 
         def inspect_object(o)
-          "#<#{o.class}:#{o.object_id}> => #{::Datomizer::Utility.to_edn(o)}"
+          "#<#{o.class}:#{o.object_id}> => #{o.to_edn}"
         end
 
         def eq_expression

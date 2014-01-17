@@ -44,15 +44,15 @@ module Datomizer
     end
 
     def q(query)
-      result = Java::Datomic::Peer.q(self.class.convert_query(query), db)
-      self.class.convert_query_result(result)
+      result = Java::Datomic::Peer.q(Translation.from_ruby(query), db)
+      Translation.from_clj(result)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise "Query failed: #{e.getMessage}"
     end
 
     def entity(entity_id)
-      raw_entity = db.entity(entity_id)
-      self.class.convert_entity(raw_entity)
+      entity = db.entity(entity_id)
+      Translation.from_clj(entity)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise "Entity retrieval failed: #{e.getMessage}"
     end
@@ -75,18 +75,6 @@ module Datomizer
         else
           datoms
       end
-    end
-
-    def self.convert_query(q)
-      Translation.from_ruby(q)
-    end
-
-    def self.convert_query_result(result)
-      Set.new(result.map(&:to_a))
-    end
-
-    def self.convert_entity(e)
-      Entity.new(e)
     end
 
     def self.tempid(partition=:'db.part/user', id=nil)
