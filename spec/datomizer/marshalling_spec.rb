@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Datomizer::Marshal do
+describe Datomizer::Marshalling do
 
   let(:uri) { 'datomic:mem://spec' }
   let(:d) { Datomizer::Database.new(uri) }
@@ -18,7 +18,7 @@ describe Datomizer::Marshal do
 
   describe 'data structure handling' do
     before do
-      d.transact(Datomizer::Marshal::SCHEMA)
+      d.transact(Datomizer::Marshalling::SCHEMA)
       d.transact([{:'db/id' => Datomizer::Database.tempid(':db.part/db'),
                    :'db/ident' => :'test/stuff',
                    :'db/valueType' => :'db.type/ref',
@@ -29,26 +29,38 @@ describe Datomizer::Marshal do
                   }])
     end
 
-    context "with map values" do
-      let(:value) {{:a => 'fnord'}}
+    shared_examples_for "a round-trip to/from the database" do
+      it "should store and retrieve the value" do
+        datoms = Datomizer::Marshalling.collection_to_datoms(value)
 
-      it "should store and retrieve map values" do
         d.transact([{:'db/id' => Datomizer::Database.tempid,
-                     :'test/stuff' => Datomizer::Marshal.collection_to_datoms(value)
+                     :'test/stuff' => datoms
                     }])
 
         entities = d.retrieve([:find, :'?e', :where, [:'?e', :'test/stuff']])
         expect(entities.size).to eq(1)
         entity = entities.first
 
-        entity_edn = Datomizer::Utility.to_edn(entity.datomic_entity.touch)
-
-        data = Datomizer::Marshal.entity_to_data(entity)
+        data = Datomizer::Marshalling.entity_to_data(entity)
         expect(data[:'test/stuff']).to eq(value)
       end
+
+    end
+
+    context "with simple map values" do
+      let(:value) {{:a => 'fnord'}}
+
+      it_should_behave_like "a round-trip to/from the database"
+    end
+
+    context "with nested map values" do
+      let(:value) {{:a => {:b => 'fnord'}}}
+
+      it_should_behave_like "a round-trip to/from the database"
     end
 
     context "with array values"
+
     context "with nested data structure values"
 
   end

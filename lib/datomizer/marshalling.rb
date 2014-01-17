@@ -1,5 +1,5 @@
 module Datomizer
-  module Marshal
+  module Marshalling
 
     # Based on work published by Chas Emerick here: https://gist.github.com/cemerick/3e615a4d42b88ccefdb4
 
@@ -78,7 +78,7 @@ module Datomizer
        :'map/entry' => data.map { |key, value|
          {:'db/id' => Datomizer::Database.tempid(partition),
           :'map/key' => Translation.from_ruby(key),
-          :'map/str-val' => value.to_s
+           entry_value_type(value) => entry_value(value)
          }}}
     end
 
@@ -92,7 +92,29 @@ module Datomizer
 
     def decode(value)
       value.is_a?(Hash) && value[:'coll/type'] == :'coll/map' or return value
-      Hash[value[:'map/entry'].map{|entry| [entry[:'map/key'], entry[:'map/str-val']]}]
+      Hash[value[:'map/entry'].map{|entry| [entry[:'map/key'], decode(entry[:'map/str-val'] || entry[:'map/ref-val'])]}]
+    end
+
+    def entry_value_type(value)
+      case value
+        when Hash
+          :'map/ref-val'
+        when String
+          :'map/str-val'
+        else
+          raise ArgumentError, "Marshalling not supported for type #{value.class.name}"
+      end
+    end
+
+    def entry_value(value)
+      case value
+        when Hash
+          collection_to_datoms(value)
+        when String
+          value
+        else
+          raise ArgumentError, "Marshalling not supported for type #{value.class.name}"
+      end
     end
 
   end
