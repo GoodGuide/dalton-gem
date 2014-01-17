@@ -18,15 +18,18 @@ describe Datomizer::Marshalling do
 
   describe 'data structure handling' do
     before do
-      d.transact(Datomizer::Marshalling::SCHEMA)
-      d.transact([{:'db/id' => Datomizer::Database.tempid(':db.part/db'),
-                   :'db/ident' => :'test/stuff',
-                   :'db/valueType' => :'db.type/ref',
-                   :'db/cardinality' => :'db.cardinality/one',
-                   :'db/doc' => "A reference attribute for testing marshalling",
-                   :'db/isComponent' => true,
-                   :'db.install/_attribute' => :'db.part/db',
-                  }])
+      Datomizer::Marshalling.install_schema(d)
+      d.transact([
+                   {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
+                    :'db/ident' => :'test/map',
+                    :'db/valueType' => :'db.type/ref',
+                    :'db/cardinality' => :'db.cardinality/many',
+                    :'db/doc' => "A reference attribute for testing marshalling",
+                    :'db/isComponent' => true,
+                    :'ref/type' => :'ref.type/map',
+                    :'db.install/_attribute' => :'db.part/db',
+                   },
+                 ])
     end
 
     shared_examples_for "a round-trip to/from the database" do
@@ -34,34 +37,49 @@ describe Datomizer::Marshalling do
         datoms = Datomizer::Marshalling.collection_to_datoms(value)
 
         d.transact([{:'db/id' => Datomizer::Database.tempid,
-                     :'test/stuff' => datoms
+                     :'test/map' => datoms
                     }])
 
-        entities = d.retrieve([:find, :'?e', :where, [:'?e', :'test/stuff']])
+        entities = d.retrieve([:find, :'?e', :where, [:'?e', :'test/map']])
         expect(entities.size).to eq(1)
         entity = entities.first
 
         data = Datomizer::Marshalling.entity_to_data(entity)
-        expect(data[:'test/stuff']).to eq(value)
+
+        expect(data[:'test/map']).to eq(value)
       end
 
     end
 
-    context "with simple map values" do
-      let(:value) {{:a => 'fnord'}}
+    context "with a single map element" do
+      let(:value) { {:a => 'grue'} }
 
       it_should_behave_like "a round-trip to/from the database"
     end
 
-    context "with nested map values" do
-      let(:value) {{:a => {:b => 'fnord'}}}
+    context "with multiple map elements" do
+      let(:value) { {:a => 'grue', :b => 'wumpus'} }
 
       it_should_behave_like "a round-trip to/from the database"
     end
 
-    context "with array values"
+    context "with a nested map" do
+      let(:value) { {:a => {:b => 'fnord'}} }
 
-    context "with nested data structure values"
+      it_should_behave_like "a round-trip to/from the database"
+    end
+
+    context "with array values" do
+      let(:value) {['a', 'b', 'c']}
+
+      it_should_behave_like "a round-trip to/from the database"
+    end
+
+    context "with nested data structure values" do
+      let(:value) {['a', 'b', 'c', ['x', 'y', 'z']]}
+
+      it_should_behave_like "a round-trip to/from the database"
+    end
 
   end
 end
