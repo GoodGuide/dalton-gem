@@ -109,6 +109,8 @@ module Datomizer
       end
     end
 
+    # TODO: add database function for update existing
+
     REF_SCHEMA = <<-EDN_ERB
 
       [[:db/add #db/id[:db.part/user] :db/ident :ref/vector]

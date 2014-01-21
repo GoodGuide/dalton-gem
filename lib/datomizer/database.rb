@@ -1,3 +1,6 @@
+java_import "clojure.lang.Keyword"
+java_import "datomic.Peer"
+
 module Datomizer
   class Database
 
@@ -15,17 +18,17 @@ module Datomizer
     attr_reader :uri, :dbc, :db
 
     def create
-      Java::Datomic::Peer.createDatabase(uri) or
+      Peer.createDatabase(uri) or
         raise "Unable to create database at \"#{uri}\"."
     end
 
     def destroy
-      Java::Datomic::Peer.deleteDatabase(uri) or
+      Peer.deleteDatabase(uri) or
         raise "Unable to destroy database at \"#{uri}\"."
     end
 
     def connect
-      @dbc = Java::Datomic::Peer.connect(uri) or
+      @dbc = Peer.connect(uri) or
         raise "Unable to connect to database at \"#{uri}\"."
       refresh
     end
@@ -38,20 +41,20 @@ module Datomizer
       data = self.class.convert_datoms(datoms)
       result = TransactionResult.new(@dbc.transact(data).get)
       @db = result.db_after
-      result
+      Translation.from_clj(result)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise "Transaction failed: #{e.getMessage}"
     end
 
     def q(query)
-      result = Java::Datomic::Peer.q(Translation.from_ruby(query), db)
+      result = Peer.q(Translation.from_ruby(query), db)
       Translation.from_clj(result)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise "Query failed: #{e.getMessage}"
     end
 
     def entity(entity_id)
-      entity = db.entity(entity_id)
+      entity = db.entity(Translation.from_ruby(entity_id))
       Translation.from_clj(entity)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise "Entity retrieval failed: #{e.getMessage}"
@@ -78,11 +81,11 @@ module Datomizer
     end
 
     def self.tempid(partition=:'db.part/user', id=nil)
-      partition = Java::ClojureLang::Keyword.intern(partition.to_s.sub(/^:/, ''))
+      partition = Keyword.intern(partition.to_s.sub(/^:/, ''))
       if id
-        Java::Datomic::Peer.tempid(partition, id)
+        Peer.tempid(partition, id)
       else
-        Java::Datomic::Peer.tempid(partition)
+        Peer.tempid(partition)
       end
     end
   end
