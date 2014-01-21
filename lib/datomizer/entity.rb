@@ -9,6 +9,10 @@ module Datomizer
 
     attr_reader :datomic_entity
 
+    def db
+      datomic_entity.db
+    end
+
     def get(key)
       Translation.from_clj(datomic_entity.get(Translation.from_ruby(key)))
     end
