@@ -20,7 +20,7 @@ module Datomizer
     alias_method :[], :get
 
     def keys
-      datomic_entity.keySet.map{|x| x.sub(/^:/, '').to_sym}.to_a
+      datomic_entity.keySet.map{|x| x.sub(/^:/, '').to_sym}.to_a + [:'db/id']
     end
 
     def id

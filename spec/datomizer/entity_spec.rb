@@ -13,7 +13,7 @@ describe Datomizer::Entity do
                  :'db/ident' => :'test/stuff',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/one',
-                 :'db/doc' => "A reference attribute for testing marshalling",
+                 :'db/doc' => 'A reference attribute for testing marshalling',
                  :'db/isComponent' => true,
                  :'db.install/_attribute' => :'db.part/db',
                 }])
@@ -23,21 +23,25 @@ describe Datomizer::Entity do
     d.destroy
   end
 
-  describe "#to_h" do
-    before do
+  describe '#to_h' do
+    let!(:transaction_result) {
       d.transact([{:'db/id' => Datomizer::Database.tempid,
-                    :'db/doc' => "foo",
-                    :'test/stuff' => {:'db/id' => Datomizer::Database.tempid,
-                                      :'db/doc' => "bar"}}
+                   :'db/doc' => 'foo',
+                   :'test/stuff' => {:'db/id' => Datomizer::Database.tempid,
+                                     :'db/doc' => 'bar'}}
                  ])
 
-    end
+    }
+    let(:tempids) { transaction_result.tempids.values.sort }
 
     let(:entity) { d.retrieve([:find, :'?e', :where, [:'?e', :'db/doc', 'foo']]).first }
     subject { entity.to_h }
 
-    it "should translate the entity to a hash" do
-      expect(subject).to eq({:"db/doc"=>"foo", :"test/stuff"=>{:"db/doc"=>"bar"}})
+    it 'should translate the entity to a hash' do
+      expect(subject).to eq({:'db/id' => tempids.first,
+                             :'db/doc' => 'foo',
+                             :'test/stuff' =>
+                               {:'db/id' => tempids.last, :'db/doc' => 'bar'}})
     end
   end
 end
