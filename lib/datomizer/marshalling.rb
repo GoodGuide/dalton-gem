@@ -16,73 +16,69 @@ module Datomizer
     end
 
     def hash_to_datoms(data, partition=:'db.part/user')
-      data.map { |key, value|
-        {:'db/id' => Datomizer::Database.tempid(partition),
-         :'element.map/key' => Translation.from_ruby(key),
-         element_value_attribute(value) => element_value(value)
+      if data.empty?
+        :'ref.map/empty'
+      else
+        data.map { |key, value|
+          {:'db/id' => Datomizer::Database.tempid(partition),
+           :'element.map/key' => Translation.from_ruby(key),
+           element_value_attribute(value) => element_value(value)
+          }
         }
-      }
+      end
+
     end
 
     def array_to_datoms(data, partition=:'db.part/user')
-      data.each_with_index.map { |value, index|
-        {:'db/id' => Datomizer::Database.tempid(partition),
-         :'element.vector/index' => index,
-         element_value_attribute(value) => element_value(value)
+      if data.empty?
+        :'ref.vector/empty'
+      else
+        data.each_with_index.map { |value, index|
+          {:'db/id' => Datomizer::Database.tempid(partition),
+           :'element.vector/index' => index,
+           element_value_attribute(value) => element_value(value)
+          }
         }
-      }
+      end
     end
 
     def entity_to_data(entity)
-      entity_hash_to_data(entity.to_h)
-    end
-
-    def entity_hash_to_data(entity_hash)
-      Hash[entity_hash.map { |k, v|
-        if v.is_a?(Set)
-          [k, decode_elements(v)]
-        else
-          [k, v]
-        end
+      Hash[entity.to_h.map { |k, v|
+        [k, decode_elements(entity, k, v)]
       }]
     end
 
-    def decode_elements(elements)
+    def decode_elements(entity, key, elements)
       elements.is_a?(Set) or return elements
-      if elements.first && elements.first.has_key?(:'element.map/key')
-        Hash[elements.map { |pair| decode(pair) }]
-      elsif elements.first && elements.first.has_key?(:'element.vector/index')
-        elements.map{|item| decode(item)}.sort_by(&:first).map(&:last)
+      elements == Set.new([:'ref.vector/empty']) and return []
+      elements == Set.new([:'ref.map/empty']) and return {}
+
+      ref_type = ref_type(entity, key)
+
+      if ref_type == :'ref.type/map'
+        Hash[elements.map { |pair| decode(entity, pair) }]
+      elsif ref_type == :'ref.type/vector'
+        elements.map { |item| decode(entity, item) }.sort_by(&:first).map(&:last)
       else
         elements
       end
     end
 
-    def decode(element)
+    def ref_type(entity, key)
+      field = entity.db.entity(Keyword.intern(key.to_s))
+      Translation.from_clj(field.get(Keyword.intern('ref/type')))
+    end
+
+    def decode(entity, element)
       element.is_a?(Hash) or return element
-      key = element[:'element.map/key']  || element[:'element.vector/index']
+
+      key = element[:'element.map/key'] || element[:'element.vector/index']
       key or return element
 
-      #TODO: make this less stupid.
-      value =
-        element[:'element.value/bigdec'] ||
-        element[:'element.value/bigint'] ||
-        element[:'element.value/boolean'] ||
-        element[:'element.value/bytes'] ||
-        element[:'element.value/double'] ||
-        element[:'element.value/float'] ||
-        element[:'element.value/fn'] ||
-        element[:'element.value/instant'] ||
-        element[:'element.value/keyword'] ||
-        element[:'element.value/long'] ||
-        element[:'element.value/ref'] ||
-        element[:'element.value/string'] ||
-        element[:'element.value/uri'] ||
-        element[:'element.value/uuid'] ||
-        element[:'element.value/map'] ||
-        element[:'element.value/vector']
+      value_attribute = element.keys.detect { |k| k.to_s.start_with?('element.value/') }
+      value = element[value_attribute]
 
-      [key, decode_elements(value)]
+      [key, decode_elements(entity, value_attribute, value)]
     end
 
     def element_value_attribute(value)
@@ -118,6 +114,8 @@ module Datomizer
       [[:db/add #db/id[:db.part/user] :db/ident :ref/vector]
        [:db/add #db/id[:db.part/user] :db/ident :ref/map]
        [:db/add #db/id[:db.part/user] :db/ident :ref/value]
+       [:db/add #db/id[:db.part/user] :db/ident :ref.map/empty]
+       [:db/add #db/id[:db.part/user] :db/ident :ref.vector/empty]
 
        {:db/id #db/id[:db.part/db]
         :db/ident :ref/type
@@ -233,6 +231,7 @@ module Datomizer
         :db/valueType :db.type/ref
         :db/cardinality :db.cardinality/many
         :db/doc "Map value of vector, map, or value element."
+        :db/isComponent true
         :ref/type :ref.type/map
         :db.install/_attribute :db.part/db}
 
@@ -241,6 +240,7 @@ module Datomizer
         :db/valueType :db.type/ref
         :db/cardinality :db.cardinality/many
         :db/doc "Vector value of vector, map, or value element."
+        :db/isComponent true
         :ref/type :ref.type/vector
         :db.install/_attribute :db.part/db}
       ]
