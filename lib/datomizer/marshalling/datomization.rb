@@ -54,20 +54,14 @@ module Datomizer
         elements == Set.new([:'ref.vector/empty']) and return []
         elements == Set.new([:'ref.map/empty']) and return {}
 
-        ref_type = ref_type(entity, key)
-
-        if ref_type == :'ref.type/map'
-          Hash[elements.map { |pair| decode(entity, pair) }]
-        elsif ref_type == :'ref.type/vector'
-          elements.map { |item| decode(entity, item) }.sort_by(&:first).map(&:last)
-        else
-          elements
+        case Datomizer::Marshalling.ref_type(entity, key)
+          when :'ref/map', :'ref.type/map'
+            Hash[elements.map { |pair| decode(entity, pair) }]
+          when :'ref/vector', :'ref.type/vector'
+            elements.map { |item| decode(entity, item) }.sort_by(&:first).map(&:last)
+          else
+            elements
         end
-      end
-
-      def ref_type(entity, key)
-        field = entity.db.entity(Keyword.intern(key.to_s))
-        Translation.from_clj(field.get(Keyword.intern('ref/type')))
       end
 
       def decode(entity, element)
@@ -109,8 +103,6 @@ module Datomizer
             raise ArgumentError, "Datomization not supported for type #{value.class.name}"
         end
       end
-
-      # TODO: add database function for update existing
 
       REF_SCHEMA = <<-EDN_ERB
 

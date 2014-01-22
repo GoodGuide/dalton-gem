@@ -30,10 +30,7 @@ module Datomizer
     end
 
     def rubify_edn(edn)
-      data = read_edn(edn)
-      Translation.from_clj(data) do |x|
-        x.is_a?(Symbol) ? x.to_s.to_sym : x #TODO: is this still needed?
-      end
+      Translation.from_clj(read_edn(edn))
     end
 
     def clojure_equal?(one, other)
@@ -47,8 +44,3 @@ module Datomizer
   end
 end
 
-class Object
-  def to_edn
-    Datomizer::Utility.to_edn(self)
-  end
-end

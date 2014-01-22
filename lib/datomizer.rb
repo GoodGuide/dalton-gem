@@ -13,9 +13,12 @@ module Datomizer
   autoload :TransactionResult, File.join(File.dirname(__FILE__), 'datomizer', 'transaction_result')
   autoload :Utility, File.join(File.dirname(__FILE__), 'datomizer', 'utility')
   autoload :Translation, File.join(File.dirname(__FILE__), 'datomizer', 'translation')
+  autoload :Marshalling, File.join(File.dirname(__FILE__), 'datomizer', 'marshalling')
+end
 
-  module Marshalling
-    autoload :Datomization, File.join(File.dirname(__FILE__), 'datomizer',  'marshalling', 'datomization')
+class Object
+  def to_edn
+    Datomizer::Utility.to_edn(self)
   end
 end
 

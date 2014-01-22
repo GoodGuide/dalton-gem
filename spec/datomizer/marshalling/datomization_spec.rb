@@ -26,7 +26,7 @@ describe Datomizer::Marshalling::Datomization do
                     :'db/cardinality' => :'db.cardinality/many',
                     :'db/doc' => "A reference attribute for testing datomization",
                     :'db/isComponent' => true,
-                    :'ref/type' => :'ref.type/map',
+                    :'ref/type' => :'ref/map',
                     :'db.install/_attribute' => :'db.part/db',
                    },
                    {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
@@ -35,7 +35,7 @@ describe Datomizer::Marshalling::Datomization do
                     :'db/cardinality' => :'db.cardinality/many',
                     :'db/doc' => "A reference attribute for testing datomization",
                     :'db/isComponent' => true,
-                    :'ref/type' => :'ref.type/vector',
+                    :'ref/type' => :'ref/vector',
                     :'db.install/_attribute' => :'db.part/db',
                    },
                  ])
