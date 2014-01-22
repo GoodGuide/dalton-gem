@@ -19,6 +19,10 @@ module Datomizer
 
     alias_method :[], :get
 
+    def touch
+      @datomic_entity.touch
+    end
+
     def keys
       datomic_entity.keySet.map{|x| x.sub(/^:/, '').to_sym}.to_a + [:'db/id']
     end

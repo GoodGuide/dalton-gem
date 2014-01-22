@@ -13,7 +13,7 @@ describe Datomizer::Entity do
                  :'db/ident' => :'test/stuff',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/one',
-                 :'db/doc' => 'A reference attribute for testing marshalling',
+                 :'db/doc' => 'A reference attribute for testing datomization',
                  :'db/isComponent' => true,
                  :'db.install/_attribute' => :'db.part/db',
                 }])

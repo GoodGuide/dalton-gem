@@ -32,7 +32,7 @@ module Datomizer
     def rubify_edn(edn)
       data = read_edn(edn)
       Translation.from_clj(data) do |x|
-        x.is_a?(Symbol) ? x.to_s.to_sym : x
+        x.is_a?(Symbol) ? x.to_s.to_sym : x #TODO: is this still needed?
       end
     end
 

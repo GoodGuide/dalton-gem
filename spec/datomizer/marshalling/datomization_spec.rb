@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Datomizer::Marshalling do
+describe Datomizer::Marshalling::Datomization do
 
   let(:uri) { 'datomic:mem://spec' }
   let(:d) { Datomizer::Database.new(uri) }
@@ -18,13 +18,13 @@ describe Datomizer::Marshalling do
 
   describe 'data structure handling' do
     before do
-      Datomizer::Marshalling.install_schema(d)
+      Datomizer::Marshalling::Datomization.install_schema(d)
       d.transact([
                    {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
                     :'db/ident' => :'test/map',
                     :'db/valueType' => :'db.type/ref',
                     :'db/cardinality' => :'db.cardinality/many',
-                    :'db/doc' => "A reference attribute for testing marshalling",
+                    :'db/doc' => "A reference attribute for testing datomization",
                     :'db/isComponent' => true,
                     :'ref/type' => :'ref.type/map',
                     :'db.install/_attribute' => :'db.part/db',
@@ -33,7 +33,7 @@ describe Datomizer::Marshalling do
                     :'db/ident' => :'test/vector',
                     :'db/valueType' => :'db.type/ref',
                     :'db/cardinality' => :'db.cardinality/many',
-                    :'db/doc' => "A reference attribute for testing marshalling",
+                    :'db/doc' => "A reference attribute for testing datomization",
                     :'db/isComponent' => true,
                     :'ref/type' => :'ref.type/vector',
                     :'db.install/_attribute' => :'db.part/db',
@@ -43,7 +43,7 @@ describe Datomizer::Marshalling do
 
     shared_examples_for "a round-trip to/from the database" do |attribute|
       it "should store and retrieve the value" do
-        collection_datoms = Datomizer::Marshalling.collection_to_datoms(value)
+        collection_datoms = Datomizer::Marshalling::Datomization.collection_to_datoms(value)
 
         d.transact([{:'db/id' => Datomizer::Database.tempid,
                      attribute => collection_datoms
@@ -53,7 +53,7 @@ describe Datomizer::Marshalling do
         expect(entities.size).to eq(1)
         entity = entities.first
 
-        data = Datomizer::Marshalling.entity_to_data(entity)
+        data = Datomizer::Marshalling::Datomization.entity_to_data(entity)
 
         expect(data[attribute]).to eq(value)
       end
