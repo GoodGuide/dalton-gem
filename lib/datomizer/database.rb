@@ -76,7 +76,7 @@ module Datomizer
         when String
           Utility.read_edn(datoms)
         else
-          datoms
+          raise ArgumentError, 'datoms must be an Array or a String containing EDN.'
       end
     end
 
