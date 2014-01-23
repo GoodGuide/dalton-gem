@@ -122,14 +122,14 @@
                                          :test/map :ref.map/empty}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
-      (is (= :ref.type/map (ref-type entity :test/map)))))
+      (is (= :ref.type/map (ref-type (db dbc) :test/map)))))
   (testing "with an attribute representing a vector"
     (let [dbc (fresh-dbc)
           tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
                                          :test/vector :ref.vector/empty}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
-      (is (= :ref.type/vector (ref-type entity :test/vector))))))
+      (is (= :ref.type/vector (ref-type (db dbc) :test/vector))))))
 
 
 (deftest test-decode)

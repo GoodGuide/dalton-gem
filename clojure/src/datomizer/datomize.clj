@@ -46,8 +46,8 @@
 
 (defn ref-type
   "Determine the reference type of an attribute."
-  [entity key]
-  (let [attribute (d/entity (.db entity) (keyword key))]
+  [db key]
+  (let [attribute (d/entity db (keyword key))]
     (:ref/type attribute)))
 
 (declare decode-elements)
@@ -71,7 +71,7 @@
     (case elements
       #{:ref.vector/empty} []
       #{:ref.map/empty} {}
-      (case (ref-type entity key)
+      (case (ref-type (.db entity) key)
         (:ref/map :ref.type/map) (apply hash-map (flatten (map #(decode entity %) elements)))
         (:ref/vector :ref.type/vector) (map last (sort-by first (map #(decode entity %) elements)))
         elements))
