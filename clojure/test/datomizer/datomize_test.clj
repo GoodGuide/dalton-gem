@@ -68,7 +68,7 @@
   "Test that a value is stored and retrieved from Datomic."
   [value]
   (let [dbc (fresh-dbc)
-        collection-datoms (datomizer.datomize/datomize :db.part/user value)
+        collection-datoms (datomizer.datomize/datomize value)
         attribute (if (map? value) :test/map :test/vector)
         entity-datoms [{:db/id (d/tempid :db.part/user)
                         :db/doc "Test entity."
