@@ -21,6 +21,7 @@ module Datomizer
 
     def touch
       @datomic_entity.touch
+      self
     end
 
     def keys
