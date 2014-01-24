@@ -46,8 +46,8 @@ module Datomizer
       raise "Transaction failed: #{e.getMessage}"
     end
 
-    def q(query)
-      result = Peer.q(Translation.from_ruby(query), db)
+    def q(query, *args)
+      result = Peer.q(Translation.from_ruby(query), db, *args)
       Translation.from_clj(result)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise "Query failed: #{e.getMessage}"
@@ -60,8 +60,8 @@ module Datomizer
       raise "Entity retrieval failed: #{e.getMessage}"
     end
 
-    def retrieve(query)
-      q(query).map { |result| entity(result.first) }
+    def retrieve(query, *args)
+      q(query, *args).map { |result| entity(result.first) }
     end
 
     def retract(entity)

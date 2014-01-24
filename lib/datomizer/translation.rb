@@ -1,6 +1,23 @@
 java_import "clojure.lang.PersistentHashSet"
 java_import "clojure.lang.Keyword"
 
+java_import "clojure.lang.Keyword"
+
+require 'zweikopf'
+
+module Zweikopf
+  module Keyword
+    # Monkey patch special handling for datalog variables
+    def self.from_ruby(keyword)
+      if keyword.to_s =~ /^[?$]/
+        Java::ClojureLang::Symbol.intern(keyword.to_s)
+      else
+        ::Keyword.intern(keyword.to_s)
+      end
+    end
+  end
+end
+
 module Datomizer
   module Translation
 
@@ -11,6 +28,8 @@ module Datomizer
     def from_clj(object)
       Zweikopf::Transformer.from_clj(object) do |value|
         case value
+          when Java::ClojureLang::Symbol
+            value.to_s.to_sym
           when Java::JavaUtil::Set
             Set.new(value.map{|x| from_clj(x)})
           when Java::Datomic::Entity
