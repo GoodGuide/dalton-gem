@@ -11,3 +11,4 @@ pkg/*
 # Ignore all logfiles and tempfiles.
 /log
 /tmp
+clojure/target/repl-port
