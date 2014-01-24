@@ -18,7 +18,7 @@
 (defn stop
   "Disconnect from database."
   [system]
-  (d/release (:dbc system))
+  (d/release @(:dbc system))
   (reset! (:dbc system) nil)
   system)
 
