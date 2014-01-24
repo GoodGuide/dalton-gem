@@ -66,7 +66,7 @@ module Datomizer
 
     def retract(entity)
       entity_id = entity.is_a?(Entity) ? entity.id : entity
-      transact(Translation.from_ruby([[:'db.fn/retractEntity', entity_id]]))
+      transact([[:'db.fn/retractEntity', entity_id]])
     end
 
     def self.convert_datoms(datoms)
