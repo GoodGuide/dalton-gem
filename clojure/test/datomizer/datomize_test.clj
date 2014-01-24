@@ -5,16 +5,6 @@
         datomizer.debug
         [datomic.api :as d :only (db q)]))
 
-
-
-(defn load-schema-edn-file [conn filename]
-  (with-open [r (java.io.PushbackReader. (clojure.java.io/reader (clojure.java.io/resource filename)))]
-    (doseq [schema-datoms (clojure.edn/read
-                             {:readers *data-readers*}
-                             r)]
-
-      (d/transact conn [schema-datoms]))))
-
 (def test-schema
   [{:db/id (d/tempid :db.part/db)
     :db/ident :test/map
@@ -49,11 +39,11 @@
   (do
     (delete-test-database)
     (d/create-database test-database-uri)
-    (let [conn (d/connect test-database-uri)]
-      (load-schema-edn-file conn "datomizer-schema.edn")
-      (d/transact conn test-schema)
-      (reset! test-database conn)
-      conn)))
+    (let [dbc (d/connect test-database-uri)]
+      (load-datomizer-schema dbc)
+      (d/transact dbc test-schema)
+      (reset! test-database dbc)
+      dbc)))
 
 (defn delete-test-database-fixture
   [test-fn]
@@ -110,7 +100,25 @@
   (testing "with a java Map"
     (is (= :element.value/map (element-value-attribute (java.util.HashMap. {:a "hashmap"})))))
   (testing "with a Long"
-    (is (= :element.value/long (element-value-attribute 23)))))
+    (is (= :element.value/long (element-value-attribute 23))))
+  (testing "with a Float"
+    (is (= :element.value/float (element-value-attribute (float 23.1)))))
+  (testing "with a Double"
+    (is (= :element.value/double (element-value-attribute 23.1))))
+  (testing "with a Boolean"
+    (is (= :element.value/boolean (element-value-attribute true))))
+  (testing "with a Date"
+    (is (= :element.value/instant (element-value-attribute (java.util.Date.)))))
+  (testing "with a keyword"
+    (is (= :element.value/keyword (element-value-attribute :keyword))))
+  (testing "with a BigDecimal"
+    (is (= :element.value/bigdec (element-value-attribute (java.math.BigDecimal. 23)))))
+  (testing "with a BigInteger"
+    (is (= :element.value/bigint (element-value-attribute (java.math.BigInteger. "23")))))
+  (testing "with a byte array"
+    (is (= :element.value/bytes (element-value-attribute (byte-array 1)))))
+  (testing "with something unsupported"
+    (is (thrown? java.lang.IllegalArgumentException (element-value-attribute (Object.))))))
 
 (deftest test-element-value)
 
