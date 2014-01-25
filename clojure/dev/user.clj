@@ -6,7 +6,7 @@
             clojure.test
             [clojure.tools.namespace.repl :refer (refresh refresh-all)]
             [datomizer.system :as system])
-  (:use [datomic.api :as d :only (q)]))
+  (:use [datomic.api :as d :only (db q)]))
 
 
 
@@ -16,7 +16,7 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (system/system :db-uri "datomic:mem::/datomizer-development"))))
+    (constantly (system/system :db-uri "datomic:dev://localhost:4334/datomizer-development"))))
 
 (defn start
   "Starts the current development system."
@@ -52,4 +52,3 @@
   (refresh :after 'user/run-datomizer-tests))
 
 (defn dbc [] @(:dbc system))
-(defn db [] (d/db (dbc)))
