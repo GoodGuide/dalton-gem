@@ -15,6 +15,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Introspection
 
+;; TODO:
+;; inline ref-type
+;; switch tests to use database functions
+;; convert EVA, datomize, and construct to database functions
+;; develop the diff and update function.
+
+
+
 (defn ref-type
   "Determine the reference type of an attribute."
   [db key]
@@ -24,7 +32,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Storage
 
-(def byte-array-class (class (byte-array 1)))
+
 
 (defn element-value-attribute
   "Datomic attribute to use for element value, based on its type."
@@ -41,11 +49,24 @@
     java.util.Map :element.value/map
     java.math.BigDecimal :element.value/bigdec
     java.math.BigInteger :element.value/bigint
-    byte-array-class :element.value/bytes
+    (class (byte-array 1)) :element.value/bytes
     ;; :element.value/fn
     ;; :element.value/ref
     (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (class value))))
     ))
+
+(def element-value-attribute-db-fn
+  (d/function {:lang "clojure"
+               :params '[value]
+               :code '(datomizer.datomize/element-value-attribute value)}))
+
+
+
+(defn install-element-value-attribute-db-fn [dbc]
+  (d/transact dbc [{:db/id (d/tempid :db.part/user)
+                    :db/ident :element-value-attribute
+                    :db/doc "Determine the reference type of an attribute."
+                    :db/fn element-value-attribute-db-fn}]))
 
 
 (defn datomize
