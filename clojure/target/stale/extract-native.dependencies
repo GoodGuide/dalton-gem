@@ -1,1 +1,0 @@
-([:dependencies ([org.clojure/clojure "1.5.1"] [com.datomic/datomic-pro "0.9.4384"] [org.clojure/tools.nrepl "0.2.3" :exclusions ([org.clojure/clojure])] [clojure-complete/clojure-complete "0.2.3" :exclusions ([org.clojure/clojure])] [org.clojure/tools.namespace "0.2.4"] [org.clojure/java.classpath "0.2.1"])])
