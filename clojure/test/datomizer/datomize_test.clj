@@ -28,8 +28,8 @@
 
 (defonce test-database (atom nil))
 
-(def test-database-uri "datomic:dev://localhost:4334/datomizer-test")
-;; (def test-database-uri "datomic:mem://datomizer-test")
+;; (def test-database-uri "datomic:dev://localhost:4334/datomizer-test")
+(def test-database-uri "datomic:mem://datomizer-test")
 
 (defn delete-test-database []
   (when @test-database
@@ -122,14 +122,6 @@
     (is (= :element.value/bytes (element-value-attribute (byte-array 1)))))
   (testing "with something unsupported"
     (is (thrown? java.lang.IllegalArgumentException (element-value-attribute (Object.))))))
-
-(deftest test-element-value-attribute-db-fn
-  (let [dbc (fresh-dbc)]
-    (install-element-value-attribute-db-fn dbc)
-    (is (= :element.value/string (d/invoke (db dbc) :element-value-attribute "foo")))
-    (is (= :element.value/string (d/q '[:find ?e ?doc ?type :where [?e :db/doc ?doc]
-                                        [(datomizer.datomize/element-value-attribute ?doc) ?type]] (db dbc))))
-    ))
 
 
 (deftest test-ref-type
