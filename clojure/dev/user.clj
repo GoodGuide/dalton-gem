@@ -6,7 +6,8 @@
             clojure.test
             [clojure.tools.namespace.repl :refer (refresh refresh-all)]
             [datomizer.system :as system])
-  (:use [datomic.api :as d :only (db q)]))
+  (:use [datomic.api :as d :only (db q)]
+        [clojure.reflect :only [reflect]]))
 
 
 
@@ -52,3 +53,5 @@
   (refresh :after 'user/run-datomizer-tests))
 
 (defn dbc [] @(:dbc system))
+
+(defn show-methods [x] (filter #(not (re-find #"^(__|const)" (str %))) (map :name (:members (clojure.reflect/reflect x)))))
