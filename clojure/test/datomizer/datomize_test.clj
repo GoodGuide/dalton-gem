@@ -23,6 +23,9 @@
     :ref/type :ref.type/vector
     :db.install/_attribute :db.part/db}])
 
+(defn load-datomizer-test-schema [dbc]
+  (d/transact dbc test-schema))
+
 (defonce test-database (atom nil))
 
 (def test-database-uri "datomic:dev://localhost:4334/datomizer-test")
@@ -41,7 +44,7 @@
     (d/create-database test-database-uri)
     (let [dbc (d/connect test-database-uri)]
       (load-datomizer-schema dbc)
-      (d/transact dbc test-schema)
+      (load-datomizer-test-schema dbc)
       (reset! test-database dbc)
       dbc)))
 
