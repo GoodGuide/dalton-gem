@@ -22,14 +22,11 @@
 ;; convert EVA, datomize, and construct to database functions
 ;; develop the diff and update function.
 
-
-
 (defn ref-type
   "Determine the reference type of an attribute."
   [db key]
   (let [attribute (d/entity db (keyword key))]
     (:ref/type attribute)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Storage

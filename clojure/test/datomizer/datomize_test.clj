@@ -3,12 +3,17 @@
   (:require [simple-check.core :as sc]
             [simple-check.generators :as gen]
             [simple-check.properties :as prop]
-            [simple-check.clojure-test :as ct :refer (defspec)])
+            [simple-check.clojure-test :as ct :refer (defspec)]
+            [clojure.pprint :refer (pprint)])
   (:use clojure.test
         datomizer.datomize
         datomizer.debug
         [datomic.api :as d :only (db q)])
   (:import (java.util Date)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fixtures
 
 (def test-schema
   [{:db/id (d/tempid :db.part/db)
@@ -71,22 +76,33 @@
 
 (use-fixtures :once delete-test-database-fixture)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Round-trip testing
+
+(defn attribute-for-value
+  "Determine the correct reference type for a value."
+  [value]
+  (cond (map? value) :test/map
+        (vector? value) :test/vector
+        :else :test/value))
+
+(defn store-test-entity [dbc value]
+  (let [entity {:db/id (d/tempid :db.part/user)
+                :db/doc "Test entity."
+                (attribute-for-value value) value}
+        entity-datoms (construct (db dbc) entity)]
+    @(d/transact dbc [entity-datoms])))
+
 (defn round-trip
   "Store, then retrieve a value to/from Datomic."
   [value]
-  (let [dbc (fresh-dbc)
-        collection-datoms (datomizer.datomize/datomize value :variant? true)
-        attribute (cond (map? value) :test/map
-                        (vector? value) :test/vector
-                        :else :test/value)
-        entity-datoms (construct (db dbc) {:db/id (d/tempid :db.part/user)
-                                           :db/doc "Test entity."
-                                           attribute value})
-        tx-result @(d/transact dbc [entity-datoms])]
+  (let [dbc (fresh-dbc)]
+    (store-test-entity dbc value)
     (let [query-result (q '[:find ?e :where [?e :db/doc "Test entity."]] (db dbc))
           entity (d/entity (db dbc) (ffirst query-result))
           data (undatomize entity)]
-      (attribute data))))
+      ((attribute-for-value value) data))))
 
 (defn round-trip-test
   "Test that a value is stored and retrieved from Datomic."
@@ -112,6 +128,18 @@
     (round-trip-test [1 2 [11 22 33] 3]))
   (testing "a value"
     (round-trip-test :a)))
+
+(deftest test-update
+    (testing "map update"
+      (let [dbc (fresh-dbc)
+            tempid  (d/tempid :db.part/user -1)
+            add-tx-result @(d/transact dbc [(construct (db dbc) {:db/id tempid :test/map {:a 1}})])
+            entity-id (d/resolve-tempid (db dbc) (:tempids add-tx-result) tempid)]
+        (d/transact dbc [(construct (db dbc) {:db/id entity-id :test/map {:b 2}})])
+        (is (= {:b 2} (:test/map (undatomize (d/entity (db dbc) entity-id))))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Unit testing
 
 (deftest test-element-value-attribute
   (testing "with a String"
@@ -145,7 +173,6 @@
   (testing "with something unsupported"
     (is (thrown? java.lang.IllegalArgumentException (element-value-attribute (Object.))))))
 
-
 (deftest test-ref-type
   (testing "with an attribute representing a map"
     (let [dbc (fresh-dbc)
@@ -170,7 +197,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Quickcheck
+;; Round-trip Quickcheck
 
 
 (def gen-long
