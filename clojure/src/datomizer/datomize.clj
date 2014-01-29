@@ -3,6 +3,7 @@
          datomizer.utility
          [datomic.api :as d :only (db q)]))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Schema
 
@@ -29,10 +30,9 @@
   (let [attribute (d/entity db (keyword key))]
     (:ref/type attribute)))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Storage
-
-
 
 (defn element-value-attribute
   "Datomic attribute to use for element value, based on its type."

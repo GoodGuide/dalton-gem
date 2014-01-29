@@ -1,17 +1,21 @@
 (ns user
-  (:require [clojure.java.io :as io]
-            [clojure.string :as str]
-            [clojure.pprint :refer (pprint pp)]
-            [clojure.repl :refer :all]
-            clojure.test
-            [clojure.tools.namespace.repl :refer (refresh refresh-all)]
-            [datomizer.system :as system])
-  (:use [datomic.api :as d :only (db q)]
-        [clojure.reflect :only [reflect]]))
-
-
+  "Tools for interactive development with the REPL. This file should
+  not be included in a production build of the application."
+  (:require
+   [clojure.java.io :as io]
+   [clojure.java.javadoc :refer (javadoc)]
+   [clojure.pprint :refer (pprint)]
+   [clojure.reflect :refer (reflect)]
+   [clojure.repl :refer (apropos dir doc find-doc pst source)]
+   [clojure.set :as set]
+   [clojure.string :as str]
+   [clojure.test :as test]
+   [clojure.tools.namespace.repl :refer (refresh refresh-all)]
+   [datomic.api :as d :refer [db q]]
+   [datomizer.system :as system]))
 
 (def system nil)
+(def dbc nil)
 
 (defn init
   "Constructs the current development system."
@@ -22,7 +26,8 @@
 (defn start
   "Starts the current development system."
   []
-  (alter-var-root #'system system/start))
+  (alter-var-root #'system system/start)
+  (alter-var-root #'dbc @(:dbc system)))
 
 (defn rebuild-database
   "Replace the database for the current development system."
@@ -52,13 +57,15 @@
 (defn t []
   (refresh :after 'user/run-datomizer-tests))
 
-(defn dbc [] @(:dbc system))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Miscellaneous tools
 
 (defn show-methods [x] (filter #(not (re-find #"^(__|const)" (str %))) (map :name (:members (clojure.reflect/reflect x)))))
 
-
-(require '[simple-check.core :as sc]
-         '[simple-check.generators :as gen]
-         '[simple-check.properties :as prop])
-
 (use 'datomizer.datomize-test)
+(use 'datomizer.datomize)
+
+(comment
+  7592186045446
+
+  )

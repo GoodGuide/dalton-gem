@@ -1,5 +1,6 @@
 (ns datomizer.debug
-  "Debugging tools.")
+  "Debugging tools."
+  (:require [clojure.pprint :refer [pprint]]))
 
 (defn dbp [x]
   (println x)
@@ -7,12 +8,16 @@
 
 (defmacro dbg [& body]
   `(let [x# ~@body]
-     (println (str "dbg: " (quote ~@body) "=" x#))
+     (print (str "dbg: " (quote ~@body) " = "))
+     (pprint x#)
+     (print "\n\n")
      (flush)
      x#))
 
 (defmacro dbgv [& body]
   `(let [x# ~@body]
-     (println (str "dbgv: " (quote ~@body) "=" (if (seq? x#) (vec x#) x# ) ))
+     (print (str "dbgv: " (quote ~@body) " = "))
+     (pprint (if (seq? x#) (vec x#) x# ))
+     (print "\n\n")
      (flush)
      x#))
