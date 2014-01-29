@@ -27,7 +27,7 @@
   "Starts the current development system."
   []
   (alter-var-root #'system system/start)
-  (alter-var-root #'dbc @(:dbc system)))
+  (alter-var-root #'dbc (fn [_] @(:dbc system))))
 
 (defn rebuild-database
   "Replace the database for the current development system."
