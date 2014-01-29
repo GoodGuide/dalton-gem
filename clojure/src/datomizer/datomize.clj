@@ -71,33 +71,36 @@
 
 (defn datomize
   "Convert collections to datoms."
-  [value & {:keys [partition] :or {partition :db.part/user}}]
+  [value & {:keys [partition variant?] :or {partition :db.part/user variant? false}}]
   (condp instance? value
-      java.util.Map (do
-                      (if (empty? value)
-                        :ref.map/empty
-                        (map (fn [[k, v]]
-                               {:db/id (d/tempid partition)
-                                :element.map/key k
-                                (element-value-attribute v) (datomize v :partition partition)})
-                             value)))
-      java.util.List (do
-                       (if (empty? value)
-                         :ref.vector/empty
-                         (map (fn [[i, v]]
-                                {:db/id (d/tempid partition)
-                                 :element.vector/index i
-                                 (element-value-attribute v) (datomize v :partition partition)})
-                              (zipmap (range) value))))
-      value))
+    java.util.Map (do
+                    (if (empty? value)
+                      :ref.map/empty
+                      (map (fn [[k, v]]
+                             {:db/id (d/tempid partition)
+                              :element.map/key k
+                              (element-value-attribute v) (datomize v :partition partition)})
+                           value)))
+    java.util.List (do
+                     (if (empty? value)
+                       :ref.vector/empty
+                       (map (fn [[i, v]]
+                              {:db/id (d/tempid partition)
+                               :element.vector/index i
+                               (element-value-attribute v) (datomize v :partition partition)})
+                            (zipmap (range) value))))
+    (if variant?
+      {:db/id (d/tempid partition)
+       (element-value-attribute value) value}
+      value)))
 
 
 (defn construct
   [db data & {:keys [partition] :or {partition :db.part/user}}]
   (apply hash-map (mapcat (fn [[attribute value]]
-                       (if (ref-type db attribute)
-                         [attribute (datomize value)]
-                         [attribute value]))
+                            (if (ref-type db attribute)
+                              [attribute (datomize value :variant? true)]
+                              [attribute value]))
                           data)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -108,27 +111,27 @@
 (defn decode
   "Convert a datomized element to a collection [key value] pair"
   [entity element]
-  (if (instance? clojure.lang.ILookup element)
-    (let [key (or (get element :element.map/key) (get element :element.vector/index))]
-      (if key
-        (let [value-attribute (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element)))
-              value (value-attribute element)]
-          [key (decode-elements entity value-attribute value)])
-        element))
-    element))
+  (cond
+   (instance? clojure.lang.ILookup element) (let [key (or (get element :element.map/key) (get element :element.vector/index))
+                                                  value-attribute (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element)))
+                                                  value (value-attribute element)]
+                                              (cond
+                                               (and key value-attribute) [key (decode-elements entity value-attribute value)]
+                                               (not (nil? value-attribute)) value
+                                               :else element))
+   :else element))
 
 (defn decode-elements
   "Convert datomized collection elements back into a collection."
   [entity key elements]
-  (if (set? elements)
-    (case elements
-      #{:ref.vector/empty} []
-      #{:ref.map/empty} {}
-      (case (ref-type (.db entity) key)
-        (:ref/map :ref.type/map) (apply hash-map (flatten (map #(decode entity %) elements)))
-        (:ref/vector :ref.type/vector) (map last (sort-by first (map #(decode entity %) elements)))
-        elements))
-    elements))
+  (case elements
+    #{:ref.vector/empty} []
+    #{:ref.map/empty} {}
+    (case (ref-type (.db entity) key)
+      (:ref/map :ref.type/map) (apply hash-map (mapcat #(decode entity %) elements))
+      (:ref/vector :ref.type/vector) (map last (sort-by first (map #(decode entity %) elements)))
+      (:ref.type/value) (decode entity elements)
+      elements)))
 
 (defn undatomize
   [entity]

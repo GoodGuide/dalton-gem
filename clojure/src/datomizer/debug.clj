@@ -13,6 +13,6 @@
 
 (defmacro dbgv [& body]
   `(let [x# ~@body]
-     (println (str "dbg: (vec " (quote ~@body) ")=" (vec x#)))
+     (println (str "dbgv: " (quote ~@body) "=" (if (seq? x#) (vec x#) x# ) ))
      (flush)
      x#))

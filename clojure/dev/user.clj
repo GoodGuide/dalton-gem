@@ -55,3 +55,10 @@
 (defn dbc [] @(:dbc system))
 
 (defn show-methods [x] (filter #(not (re-find #"^(__|const)" (str %))) (map :name (:members (clojure.reflect/reflect x)))))
+
+
+(require '[simple-check.core :as sc]
+         '[simple-check.generators :as gen]
+         '[simple-check.properties :as prop])
+
+(use 'datomizer.datomize-test)
