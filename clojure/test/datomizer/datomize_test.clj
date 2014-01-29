@@ -76,13 +76,13 @@
   [value]
   (let [dbc (fresh-dbc)
         collection-datoms (datomizer.datomize/datomize value :variant? true)
-        attribute (cond (map? (dbg value)) :test/map
+        attribute (cond (map? value) :test/map
                         (vector? value) :test/vector
                         :else :test/value)
-        entity-datoms [{:db/id (d/tempid :db.part/user)
-                        :db/doc "Test entity."
-                        attribute (dbgv collection-datoms)}]
-        tx-result @(d/transact dbc entity-datoms)]
+        entity-datoms (construct (db dbc) {:db/id (d/tempid :db.part/user)
+                                           :db/doc "Test entity."
+                                           attribute value})
+        tx-result @(d/transact dbc [entity-datoms])]
     (let [query-result (q '[:find ?e :where [?e :db/doc "Test entity."]] (db dbc))
           entity (d/entity (db dbc) (ffirst query-result))
           data (undatomize entity)]
