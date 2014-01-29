@@ -52,21 +52,21 @@
     (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (class value))))
     ))
 
-(def element-value-attribute-db-fn
+#_(def element-value-attribute-db-fn
   (d/function {:lang "clojure"
                :params '[value]
-               :code '(datomizer.datomize/element-value-attribute value)}))
+               :code '(datomizer.encode/element-value-attribute value)}))
 
 
 
-(defn install-element-value-attribute-db-fn [dbc]
+#_(defn install-element-value-attribute-db-fn [dbc]
   (d/transact dbc [{:db/id (d/tempid :db.part/user)
                     :db/ident :element-value-attribute
                     :db/doc "Determine the reference type of an attribute."
                     :db/fn element-value-attribute-db-fn}]))
 
 
-(defn datomize
+(defn encode
   "Convert collections to datoms."
   [value & {:keys [partition variant?] :or {partition :db.part/user variant? false}}]
   (condp instance? value
@@ -76,7 +76,7 @@
                       (map (fn [[k, v]]
                              {:db/id (d/tempid partition)
                               :element.map/key k
-                              (element-value-attribute v) (datomize v :partition partition)})
+                              (element-value-attribute v) (encode v :partition partition)})
                            value)))
     java.util.List (do
                      (if (empty? value)
@@ -84,7 +84,7 @@
                        (map (fn [[i, v]]
                               {:db/id (d/tempid partition)
                                :element.vector/index i
-                               (element-value-attribute v) (datomize v :partition partition)})
+                               (element-value-attribute v) (encode v :partition partition)})
                             (zipmap (range) value))))
     (if variant?
       {:db/id (d/tempid partition)
@@ -92,11 +92,11 @@
       value)))
 
 
-(defn construct
+(defn datomize
   [db data & {:keys [partition] :or {partition :db.part/user}}]
   (apply hash-map (mapcat (fn [[attribute value]]
                             (if (ref-type db attribute)
-                              [attribute (datomize value :variant? true)]
+                              [attribute (encode value :variant? true)]
                               [attribute value]))
                           data)))
 

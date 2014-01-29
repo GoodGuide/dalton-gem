@@ -78,7 +78,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Round-trip testing
+;; Round-Trip Testing
 
 (defn attribute-for-value
   "Determine the correct reference type for a value."
@@ -91,7 +91,7 @@
   (let [entity {:db/id (d/tempid :db.part/user)
                 :db/doc "Test entity."
                 (attribute-for-value value) value}
-        entity-datoms (construct (db dbc) entity)]
+        entity-datoms (datomize (db dbc) entity)]
     @(d/transact dbc [entity-datoms])))
 
 (defn round-trip
@@ -133,13 +133,13 @@
     (testing "map update"
       (let [dbc (fresh-dbc)
             tempid  (d/tempid :db.part/user -1)
-            add-tx-result @(d/transact dbc [(construct (db dbc) {:db/id tempid :test/map {:a 1}})])
+            add-tx-result @(d/transact dbc [(datomize (db dbc) {:db/id tempid :test/map {:a 1}})])
             entity-id (d/resolve-tempid (db dbc) (:tempids add-tx-result) tempid)]
-        (d/transact dbc [(construct (db dbc) {:db/id entity-id :test/map {:b 2}})])
+        (d/transact dbc [(datomize (db dbc) {:db/id entity-id :test/map {:b 2}})])
         (is (= {:b 2} (:test/map (undatomize (d/entity (db dbc) entity-id))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Unit testing
+;; Unit Testing
 
 (deftest test-element-value-attribute
   (testing "with a String"
@@ -197,7 +197,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Round-trip Quickcheck
+;; Round-Trip Generative Testing
 
 
 (def gen-long
