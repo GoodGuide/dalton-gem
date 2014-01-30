@@ -11,10 +11,12 @@
 (defmacro dbg [& body]
   `(let [x# ~@body]
      (when *debug*
-       (print (str "dbg: " (quote ~@body) " = "))
-       (pprint x#)
-       (print "\n")
-       (flush))
+       (with-bindings {#'clojure.pprint/*print-miser-width* 80
+                       #'clojure.pprint/*print-right-margin* 160}
+         (print (str "dbg: " (quote ~@body) " = "))
+         (pprint x#)
+         (print "\n")
+         (flush)))
      x#))
 
 (defmacro dbgv [& body]

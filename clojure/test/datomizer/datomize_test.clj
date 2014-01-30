@@ -134,7 +134,7 @@
   (testing "a value"
     (round-trip-test :a)))
 
-#_(deftest test-update
+(deftest test-update
   (testing "map update"
     (binding [*debug* true]
       (let [original-data {:same "stays the same", :old "is retracted", :different "gets changed"}

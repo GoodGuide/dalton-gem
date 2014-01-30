@@ -2,6 +2,7 @@
   (:require [datomizer.debug :refer :all]
             [datomizer.utility :refer :all]
             clojure.data
+            [clojure.string :as str]
             [datomic.api :as d :refer (db q)]))
 
 
@@ -16,12 +17,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Introspection
-
-;; TODO:
-;; inline ref-type
-;; switch tests to use database functions
-;; convert EVA, datomize, and construct to database functions
-;; develop the diff and update function.
 
 (defn ref-type
   "Determine the reference type of an attribute."
@@ -64,7 +59,7 @@
           [[] []]
           elements))
 
-(defrecord Context [db partition parent-entity-id attribute-on-parent])
+(defrecord Context [operation db partition parent-entity-id attribute-on-parent])
 
 (defmulti encode
   "Encode a value as datoms.
@@ -73,14 +68,40 @@
   (fn [context value-to-encode]
     (ref-type (:db context) (:attribute-on-parent context))))
 
+
+(defn determine-element-id [context key-attribute key]
+  (case (:operation context)
+    :db/add (d/tempid (:partition context))
+    :db/retract (ffirst (q '[:find ?e
+                             :in $ ?attribute ?parent-id ?key-attribute ?key
+                             :where
+                             [?parent-id ?attribute ?e]
+                             [?e ?key-attribute ?key]]
+                           (:db context)
+                           (:attribute-on-parent context)
+                           (:parent-entity-id context)
+                           key-attribute
+                           key))))
+
+(defn determine-variant-id [context]
+  (case (:operation context)
+    :db/add (d/tempid (:partition context))
+    :db/retract (ffirst (q '[:find ?e
+                             :in $ ?attribute ?parent-id
+                             :where
+                             [?parent-id ?attribute ?e]]
+                           (:db context)
+                           (:attribute-on-parent context)
+                           (:parent-entity-id context)))))
+
 (defn encode-pair [context key-attribute k v]
-  (let [element-id (d/tempid (:partition context))
-        element-value-attribute (element-value-attribute v)
-        element-context (assoc context :parent-entity-id element-id :attribute-on-parent element-value-attribute )
+  (let [element-id (determine-element-id context key-attribute k)
+        value-attribute (element-value-attribute v)
+        element-context (assoc context :parent-entity-id element-id :attribute-on-parent value-attribute )
         [encoded-values datoms] (encode element-context v)]
     [element-id (concat datoms
-                        [[:db/add element-id key-attribute k]
-                         [:db/add element-id element-value-attribute encoded-values]])]))
+                        [[(:operation context) element-id key-attribute k]
+                         [(:operation context) element-id value-attribute encoded-values]])]))
 
 (defmethod encode :ref.type/map [context value-to-encode]
   (when-not (map? value-to-encode)
@@ -99,8 +120,8 @@
                             (zipmap (range) value-to-encode)))))
 
 (defmethod encode :ref.type/value [context value-to-encode]
-  (let [id (d/tempid (:partition context))]
-    [id [[:db/add id (element-value-attribute value-to-encode) value-to-encode]]]))
+  (let [id (determine-variant-id context)]
+    [id [[(:operation context) id (element-value-attribute value-to-encode) value-to-encode]]]))
 
 (defmethod encode nil [_ value-to-encode]
   [value-to-encode []])
@@ -112,12 +133,19 @@
   [db entity & {:keys [partition] :or {partition :db.part/user}}]
   (let [entity-id (:db/id entity)
         data (dissoc entity :db/id)
-        existing-entity (if (pos? (d/entid db entity-id)) (undatomize (d/entity db entity-id)) {})
+        existing-entity (if (pos? (d/entid db entity-id)) (dissoc (undatomize (d/entity db entity-id)) :db/id) {})
         [new-pairs obsolete-pairs unchanged-pairs] (clojure.data/diff data existing-entity)]
-    (second (condense-elements (map (fn [[attribute, value]]
-                                      (let [[encoded-values datoms] (encode (->Context db partition entity-id attribute) value)]
-                                        [entity-id (into datoms [[:db/add entity-id attribute encoded-values]])]))
-                                    data)))))
+    (concat
+
+     (second (condense-elements (map (fn [[attribute, value]]
+                                       (let [[encoded-values datoms] (encode (->Context :db/retract db partition entity-id attribute) value)]
+                                         [entity-id (into datoms [[:db/retract entity-id attribute encoded-values]])]))
+                                     obsolete-pairs)))
+
+     (second (condense-elements (map (fn [[attribute, value]]
+                                       (let [[encoded-values datoms] (encode (->Context :db/add db partition entity-id attribute) value)]
+                                         [entity-id (into datoms [[:db/add entity-id attribute encoded-values]])]))
+                                     new-pairs))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Retrieval
