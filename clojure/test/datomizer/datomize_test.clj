@@ -141,9 +141,9 @@
             update-data {:same "stays the same", :new "is added", :different "see, now different!"}
             dbc (fresh-dbc)
             tempid  (d/tempid :db.part/user -1)
-            add-tx-result @(d/transact dbc [(datomize (db dbc) {:db/id tempid :test/map original-data})])
+            add-tx-result @(d/transact dbc (datomize (db dbc) {:db/id tempid :test/map original-data}))
             entity-id (d/resolve-tempid (db dbc) (:tempids add-tx-result) tempid)]
-        (d/transact dbc [(datomize (db dbc) {:db/id entity-id :test/map update-data})])
+        (d/transact dbc (datomize (db dbc) {:db/id entity-id :test/map update-data}))
         (is (= update-data (:test/map (undatomize (d/entity (db dbc) entity-id)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
