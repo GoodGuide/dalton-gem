@@ -64,47 +64,45 @@
           [[] []]
           elements))
 
+(defrecord Context [db partition parent-entity-id attribute-on-parent])
+
 (defmulti encode
   "Encode a value as datoms.
   Returns a pair of values: the to assign to the parent attribute
   and a vec of datoms to transact."
-  (fn [db partition parent-entity-id attribute-on-parent value-to-encode]
-    (ref-type db attribute-on-parent)))
+  (fn [context value-to-encode]
+    (ref-type (:db context) (:attribute-on-parent context))))
 
-(defmethod encode :ref.type/map [db partition parent-entity-id attribute-on-parent value-to-encode]
+(defn encode-pair [context key-attribute k v]
+  (let [element-id (d/tempid (:partition context))
+        element-value-attribute (element-value-attribute v)
+        element-context (assoc context :parent-entity-id element-id :attribute-on-parent element-value-attribute )
+        [encoded-values datoms] (encode element-context v)]
+    [element-id (concat datoms
+                        [[:db/add element-id key-attribute k]
+                         [:db/add element-id element-value-attribute encoded-values]])]))
+
+(defmethod encode :ref.type/map [context value-to-encode]
   (when-not (map? value-to-encode)
-    (throw (java.lang.IllegalArgumentException. (str attribute-on-parent " expects a map. Got " value-to-encode)) ))
+    (throw (java.lang.IllegalArgumentException. (str (:attribute-on-parent context) " expects a map. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
     [:ref.map/empty []]
-    (condense-elements (map (fn [[k, v]]
-                             (let [element-id (d/tempid partition)
-                                   element-value-attribute (element-value-attribute v)
-                                   [encoded-values datoms] (encode db partition element-id element-value-attribute v)]
-                               [element-id (concat datoms
-                                                 [[:db/add element-id :element.map/key k]
-                                                  [:db/add element-id element-value-attribute encoded-values]])]))
-                           value-to-encode))))
+    (condense-elements (map (fn [[k, v]] (encode-pair context :element.map/key k v))
+                            value-to-encode))))
 
-
-(defmethod encode :ref.type/vector [db partition parent-entity-id attribute-on-parent value-to-encode]
+(defmethod encode :ref.type/vector [context value-to-encode]
   (when-not (vector? value-to-encode)
-    (throw (java.lang.IllegalArgumentException. (str attribute-on-parent " expects a vector. Got " value-to-encode)) ))
+    (throw (java.lang.IllegalArgumentException. (str (:attribute-on-parent context) " expects a vector. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
     [:ref.vector/empty []]
-    (condense-elements (map (fn [[i, v]]
-                             (let [element-id (d/tempid partition)
-                                   element-value-attribute (element-value-attribute v)
-                                   [encoded-values datoms] (encode db partition element-id element-value-attribute v)]
-                               [element-id (into datoms
-                                                 [[:db/add element-id :element.vector/index i]
-                                                  [:db/add element-id element-value-attribute encoded-values]])]))
-                           (zipmap (range) value-to-encode)))))
+    (condense-elements (map (fn [[i, v]] (encode-pair context :element.vector/index i v))
+                            (zipmap (range) value-to-encode)))))
 
-(defmethod encode :ref.type/value [db partition parent-entity-id attribute-on-parent value-to-encode]
-  (let [id (d/tempid partition)]
+(defmethod encode :ref.type/value [context value-to-encode]
+  (let [id (d/tempid (:partition context))]
     [id [[:db/add id (element-value-attribute value-to-encode) value-to-encode]]]))
 
-(defmethod encode nil [db partition parent-entity-id attribute-on-parent value-to-encode]
+(defmethod encode nil [_ value-to-encode]
   [value-to-encode []])
 
 
@@ -117,7 +115,7 @@
         existing-entity (if (pos? (d/entid db entity-id)) (undatomize (d/entity db entity-id)) {})
         [new-pairs obsolete-pairs unchanged-pairs] (clojure.data/diff data existing-entity)]
     (second (condense-elements (map (fn [[attribute, value]]
-                                      (let [[encoded-values datoms] (encode db partition entity-id attribute value)]
+                                      (let [[encoded-values datoms] (encode (->Context db partition entity-id attribute) value)]
                                         [entity-id (into datoms [[:db/add entity-id attribute encoded-values]])]))
                                     data)))))
 
