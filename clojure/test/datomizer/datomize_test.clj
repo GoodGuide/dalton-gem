@@ -40,7 +40,12 @@
     :db/isComponent true
     :ref/type :ref.type/value
     :db.install/_attribute :db.part/db}
-   ])
+   {:db/id (d/tempid :db.part/db)
+    :db/ident :test/names
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/many
+    :db/doc "A multiple string attribute for testing."
+    :db.install/_attribute :db.part/db}])
 
 (defn load-datomizer-test-schema [dbc]
   (d/transact dbc test-schema))
@@ -92,7 +97,7 @@
                 :db/doc "Test entity."
                 (attribute-for-value value) value}
         entity-datoms (datomize (db dbc) entity)]
-    @(d/transact dbc [entity-datoms])))
+    @(d/transact dbc entity-datoms)))
 
 (defn round-trip
   "Store, then retrieve a value to/from Datomic."
@@ -129,14 +134,17 @@
   (testing "a value"
     (round-trip-test :a)))
 
-(deftest test-update
-    (testing "map update"
-      (let [dbc (fresh-dbc)
+#_(deftest test-update
+  (testing "map update"
+    (binding [*debug* true]
+      (let [original-data {:same "stays the same", :old "is retracted", :different "gets changed"}
+            update-data {:same "stays the same", :new "is added", :different "see, now different!"}
+            dbc (fresh-dbc)
             tempid  (d/tempid :db.part/user -1)
-            add-tx-result @(d/transact dbc [(datomize (db dbc) {:db/id tempid :test/map {:a 1}})])
+            add-tx-result @(d/transact dbc [(datomize (db dbc) {:db/id tempid :test/map original-data})])
             entity-id (d/resolve-tempid (db dbc) (:tempids add-tx-result) tempid)]
-        (d/transact dbc [(datomize (db dbc) {:db/id entity-id :test/map {:b 2}})])
-        (is (= {:b 2} (:test/map (undatomize (d/entity (db dbc) entity-id))))))))
+        (d/transact dbc [(datomize (db dbc) {:db/id entity-id :test/map update-data})])
+        (is (= update-data (:test/map (undatomize (d/entity (db dbc) entity-id)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit Testing

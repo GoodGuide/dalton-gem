@@ -1,7 +1,8 @@
 (ns datomizer.datomize
-  ( :use datomizer.debug
-         datomizer.utility
-         [datomic.api :as d :only (db q)]))
+  (:require [datomizer.debug :refer :all]
+            [datomizer.utility :refer :all]
+            clojure.data
+            [datomic.api :as d :refer (db q)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -31,6 +32,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Storage
 
+
+
 (defn element-value-attribute
   "Datomic attribute to use for element value, based on its type."
   [value]
@@ -52,53 +55,71 @@
     (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (class value))))
     ))
 
-#_(def element-value-attribute-db-fn
-  (d/function {:lang "clojure"
-               :params '[value]
-               :code '(datomizer.encode/element-value-attribute value)}))
+(defn condense-elements
+  "Merge a list of value - datom list pairs."
+  [elements]
+  (reduce (fn [[accumulated-values accumulated-datoms]
+              [value datoms]]
+            [(concat accumulated-values (flatten [value])) (concat accumulated-datoms datoms)])
+          [[] []]
+          elements))
+
+(defmulti encode
+  "Encode a value as datoms.
+  Returns a pair of values: the to assign to the parent attribute
+  and a vec of datoms to transact."
+  (fn [db partition parent-entity-id attribute-on-parent value-to-encode]
+    (ref-type db attribute-on-parent)))
+
+(defmethod encode :ref.type/map [db partition parent-entity-id attribute-on-parent value-to-encode]
+  (when-not (map? value-to-encode)
+    (throw (java.lang.IllegalArgumentException. (str attribute-on-parent " expects a map. Got " value-to-encode)) ))
+  (if (empty? value-to-encode)
+    [:ref.map/empty []]
+    (condense-elements (map (fn [[k, v]]
+                             (let [element-id (d/tempid partition)
+                                   element-value-attribute (element-value-attribute v)
+                                   [encoded-values datoms] (encode db partition element-id element-value-attribute v)]
+                               [element-id (concat datoms
+                                                 [[:db/add element-id :element.map/key k]
+                                                  [:db/add element-id element-value-attribute encoded-values]])]))
+                           value-to-encode))))
 
 
+(defmethod encode :ref.type/vector [db partition parent-entity-id attribute-on-parent value-to-encode]
+  (when-not (vector? value-to-encode)
+    (throw (java.lang.IllegalArgumentException. (str attribute-on-parent " expects a vector. Got " value-to-encode)) ))
+  (if (empty? value-to-encode)
+    [:ref.vector/empty []]
+    (condense-elements (map (fn [[i, v]]
+                             (let [element-id (d/tempid partition)
+                                   element-value-attribute (element-value-attribute v)
+                                   [encoded-values datoms] (encode db partition element-id element-value-attribute v)]
+                               [element-id (into datoms
+                                                 [[:db/add element-id :element.vector/index i]
+                                                  [:db/add element-id element-value-attribute encoded-values]])]))
+                           (zipmap (range) value-to-encode)))))
 
-#_(defn install-element-value-attribute-db-fn [dbc]
-  (d/transact dbc [{:db/id (d/tempid :db.part/user)
-                    :db/ident :element-value-attribute
-                    :db/doc "Determine the reference type of an attribute."
-                    :db/fn element-value-attribute-db-fn}]))
+(defmethod encode :ref.type/value [db partition parent-entity-id attribute-on-parent value-to-encode]
+  (let [id (d/tempid partition)]
+    [id [[:db/add id (element-value-attribute value-to-encode) value-to-encode]]]))
+
+(defmethod encode nil [db partition parent-entity-id attribute-on-parent value-to-encode]
+  [value-to-encode []])
 
 
-(defn encode
-  "Convert collections to datoms."
-  [value & {:keys [partition variant?] :or {partition :db.part/user variant? false}}]
-  (condp instance? value
-    java.util.Map (do
-                    (if (empty? value)
-                      :ref.map/empty
-                      (map (fn [[k, v]]
-                             {:db/id (d/tempid partition)
-                              :element.map/key k
-                              (element-value-attribute v) (encode v :partition partition)})
-                           value)))
-    java.util.List (do
-                     (if (empty? value)
-                       :ref.vector/empty
-                       (map (fn [[i, v]]
-                              {:db/id (d/tempid partition)
-                               :element.vector/index i
-                               (element-value-attribute v) (encode v :partition partition)})
-                            (zipmap (range) value))))
-    (if variant?
-      {:db/id (d/tempid partition)
-       (element-value-attribute value) value}
-      value)))
-
+(declare undatomize)
 
 (defn datomize
-  [db data & {:keys [partition] :or {partition :db.part/user}}]
-  (apply hash-map (mapcat (fn [[attribute value]]
-                            (if (ref-type db attribute)
-                              [attribute (encode value :variant? true)]
-                              [attribute value]))
-                          data)))
+  [db entity & {:keys [partition] :or {partition :db.part/user}}]
+  (let [entity-id (:db/id entity)
+        data (dissoc entity :db/id)
+        existing-entity (if (pos? (d/entid db entity-id)) (undatomize (d/entity db entity-id)) {})
+        [new-pairs obsolete-pairs unchanged-pairs] (clojure.data/diff data existing-entity)]
+    (second (condense-elements (map (fn [[attribute, value]]
+                                      (let [[encoded-values datoms] (encode db partition entity-id attribute value)]
+                                        [entity-id (into datoms [[:db/add entity-id attribute encoded-values]])]))
+                                    data)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Retrieval

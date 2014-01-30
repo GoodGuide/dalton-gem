@@ -64,8 +64,3 @@
 
 (use 'datomizer.datomize-test)
 (use 'datomizer.datomize)
-
-(comment
-  7592186045446
-
-  )

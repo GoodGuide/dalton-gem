@@ -2,9 +2,9 @@
   "Debugging tools."
   (:require [clojure.pprint :refer [pprint]]))
 
-(def ^:dynamic *debug* false)
+(def ^:dynamic *debug* true)
 
-(defn dbp [x]
+(defn dbgp [x]
   (println x)
   (flush))
 
@@ -13,7 +13,7 @@
      (when *debug*
        (print (str "dbg: " (quote ~@body) " = "))
        (pprint x#)
-       (print "\n\n")
+       (print "\n")
        (flush))
      x#))
 
@@ -22,6 +22,6 @@
      (when *debug*
        (print (str "dbgv: " (quote ~@body) " = "))
        (pprint (if (seq? x#) (vec x#) x# ))
-       (print "\n\n")
+       (print "\n")
        (flush))
      x#))
