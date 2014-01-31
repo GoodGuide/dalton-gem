@@ -72,18 +72,20 @@
       (reset! test-database dbc)
       dbc)))
 
-(defn delete-test-database-fixture
-  [test-fn]
-  (try
-    (test-fn)
-    (finally
-      (delete-test-database))))
-
-(use-fixtures :once delete-test-database-fixture)
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Round-Trip Testing
+
+(defn seq-if-byte-array [x]
+  (if (instance? byte-array-class x) (seq x) x))
+
+(defn walk-wrapping-byte-arrays
+  "Return a copy of a data structure with all byte-arrays wrapped in seqs (for comparison of contents)."
+  [data]
+  (clojure.walk/postwalk seq-if-byte-array data))
+
+(defn equivalent? [expected actual]
+  "Compare with = (wrapping byte arrays in seqs to check them by equivalence instead of id)."
+  (apply = (map walk-wrapping-byte-arrays [expected actual])))
 
 (defn attribute-for-value
   "Determine the correct reference type for a value."
@@ -112,7 +114,7 @@
 (defn round-trip-test
   "Test that a value is stored and retrieved from Datomic."
   [value]
-  (is (= value (round-trip value))))
+  (is (equivalent? value (round-trip value))))
 
 (deftest test-datomize
   (testing "of an empty map"
@@ -131,20 +133,21 @@
     (round-trip-test [1 2 3]))
   (testing "a nested vector"
     (round-trip-test [1 2 [11 22 33] 3]))
-  (testing "a value"
-    (round-trip-test :a)))
+  (testing "a keyword value"
+    (round-trip-test :a))
+  (testing "a byte array value"
+    (round-trip-test (byte-array [(byte 1) (byte 2)]))))
 
 (deftest test-update
   (testing "map update"
-    (binding [*debug* true]
-      (let [original-data {:same "stays the same", :old "is retracted", :different "gets changed"}
-            update-data {:same "stays the same", :new "is added", :different "see, now different!"}
-            dbc (fresh-dbc)
-            tempid  (d/tempid :db.part/user -1)
-            add-tx-result @(d/transact dbc (datomize (db dbc) {:db/id tempid :test/map original-data}))
-            entity-id (d/resolve-tempid (db dbc) (:tempids add-tx-result) tempid)]
-        (d/transact dbc (datomize (db dbc) {:db/id entity-id :test/map update-data}))
-        (is (= update-data (:test/map (undatomize (d/entity (db dbc) entity-id)))))))))
+    (let [original-data {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
+          update-data {:same "stays the same", :new "is added", :different "see, now different!" :nested {:a 1 :b 4 :d 5} }
+          dbc (fresh-dbc)
+          tempid  (d/tempid :db.part/user -1)
+          add-tx-result @(d/transact dbc (datomize (db dbc) {:db/id tempid :test/map original-data}))
+          entity-id (d/resolve-tempid (db dbc) (:tempids add-tx-result) tempid)]
+      @(d/transact dbc (datomize (db dbc) {:db/id entity-id :test/map update-data}))
+      (is (= update-data (:test/map (undatomize (d/entity (db dbc) entity-id))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit Testing
@@ -286,7 +289,8 @@
 
 (def prop-round-trip
   (prop/for-all [value datomizable-value]
-                (= value (round-trip value))))
+                (let [result (round-trip value)]
+                  (equivalent? value result))))
 
 (defspec quickcheck-round-trip
   30

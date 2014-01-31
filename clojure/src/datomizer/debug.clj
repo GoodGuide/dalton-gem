@@ -11,7 +11,7 @@
 (defmacro dbg [& body]
   `(let [x# ~@body]
      (when *debug*
-       (with-bindings {#'clojure.pprint/*print-miser-width* 80
+       (with-bindings {#'clojure.pprint/*print-miser-width* 120
                        #'clojure.pprint/*print-right-margin* 160}
          (print (str "dbg: " (quote ~@body) " = "))
          (pprint x#)

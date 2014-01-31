@@ -27,7 +27,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Storage
 
-
+(def byte-array-class (class (byte-array 1))) ; is there a clojure literal for the byte-array class?
 
 (defn element-value-attribute
   "Datomic attribute to use for element value, based on its type."
@@ -44,7 +44,7 @@
     java.util.Map :element.value/map
     java.math.BigDecimal :element.value/bigdec
     java.math.BigInteger :element.value/bigint
-    (class (byte-array 1)) :element.value/bytes
+    byte-array-class :element.value/bytes
     ;; :element.value/fn
     ;; :element.value/ref
     (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (class value))))
@@ -70,18 +70,17 @@
 
 
 (defn determine-element-id [context key-attribute key]
-  (case (:operation context)
-    :db/add (d/tempid (:partition context))
-    :db/retract (ffirst (q '[:find ?e
-                             :in $ ?attribute ?parent-id ?key-attribute ?key
-                             :where
-                             [?parent-id ?attribute ?e]
-                             [?e ?key-attribute ?key]]
-                           (:db context)
-                           (:attribute-on-parent context)
-                           (:parent-entity-id context)
-                           key-attribute
-                           key))))
+  (or (ffirst (q '[:find ?e
+                   :in $ ?attribute ?parent-id ?key-attribute ?key
+                   :where
+                   [?parent-id ?attribute ?e]
+                   [?e ?key-attribute ?key]]
+                 (:db context)
+                 (:attribute-on-parent context)
+                 (:parent-entity-id context)
+                 key-attribute
+                 key))
+      (d/tempid (:partition context))))
 
 (defn determine-variant-id [context]
   (case (:operation context)
@@ -100,8 +99,10 @@
         element-context (assoc context :parent-entity-id element-id :attribute-on-parent value-attribute )
         [encoded-values datoms] (encode element-context v)]
     [element-id (concat datoms
-                        [[(:operation context) element-id key-attribute k]
-                         [(:operation context) element-id value-attribute encoded-values]])]))
+                        [[(:operation context) element-id key-attribute k]]
+                        (if (sequential? encoded-values)
+                          (map (fn [encoded-value] [(:operation context) element-id value-attribute encoded-value]) encoded-values)
+                          [[(:operation context) element-id value-attribute encoded-values]]))]))
 
 (defmethod encode :ref.type/map [context value-to-encode]
   (when-not (map? value-to-encode)
@@ -135,17 +136,24 @@
         data (dissoc entity :db/id)
         existing-entity (if (pos? (d/entid db entity-id)) (dissoc (undatomize (d/entity db entity-id)) :db/id) {})
         [new-pairs obsolete-pairs unchanged-pairs] (clojure.data/diff data existing-entity)]
-    (concat
-
-     (second (condense-elements (map (fn [[attribute, value]]
-                                       (let [[encoded-values datoms] (encode (->Context :db/retract db partition entity-id attribute) value)]
-                                         [entity-id (into datoms [[:db/retract entity-id attribute encoded-values]])]))
-                                     obsolete-pairs)))
-
-     (second (condense-elements (map (fn [[attribute, value]]
-                                       (let [[encoded-values datoms] (encode (->Context :db/add db partition entity-id attribute) value)]
-                                         [entity-id (into datoms [[:db/add entity-id attribute encoded-values]])]))
-                                     new-pairs))))))
+    (let [retractions (second (condense-elements (map (fn [[attribute, value]]
+                                                        (let [[encoded-values datoms] (encode (->Context :db/retract db partition entity-id attribute) value)]
+                                                          [entity-id (concat datoms
+                                                                             (if (sequential? encoded-values)
+                                                                             (map (fn [encoded-value] [:db/retract entity-id attribute encoded-value]) encoded-values)
+                                                                             [[:db/retract entity-id attribute encoded-values]]))]))
+                                                      obsolete-pairs)))
+          additions (second (condense-elements (map (fn [[attribute, value]]
+                                                      (let [[encoded-values datoms] (encode (->Context :db/add db partition entity-id attribute) value)]
+                                                        [entity-id (concat datoms
+                                                                           (if (sequential? encoded-values)
+                                                                             (map (fn [encoded-value] [:db/add entity-id attribute encoded-value]) encoded-values)
+                                                                             [[:db/add entity-id attribute encoded-values]]))]))
+                                                    new-pairs)))]
+      (let [conflicts (clojure.set/intersection (apply hash-set (map rest retractions)) (apply hash-set (map rest additions)))]
+        (let [conflict? (fn [datom] (contains? conflicts (rest datom)))
+              datoms (remove conflict? (concat retractions additions))]
+          datoms)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Retrieval

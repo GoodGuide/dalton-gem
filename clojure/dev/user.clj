@@ -12,7 +12,8 @@
    [clojure.test :as test]
    [clojure.tools.namespace.repl :refer (refresh refresh-all)]
    [datomic.api :as d :refer [db q]]
-   [datomizer.system :as system]))
+   [datomizer.system :as system]
+   [datomizer.debug :refer :all]))
 
 (def system nil)
 (def dbc nil)
