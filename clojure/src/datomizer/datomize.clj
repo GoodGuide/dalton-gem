@@ -50,23 +50,19 @@
     (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (class value))))
     ))
 
-(defn condense-elements
-  "Merge a list of value - datom list pairs."
-  [elements]
-  (reduce (fn [[accumulated-values accumulated-datoms]
-              [value datoms]]
-            [(concat accumulated-values (flatten [value])) (concat accumulated-datoms datoms)])
-          [[] []]
-          elements))
 
-(defrecord Context [operation db partition parent-entity-id attribute-on-parent])
+(defrecord Context [operation   ; What operation we're currently performing: :db/add or :db/retract
+                    db          ; The database.
+                    partition   ; The partition where we're putting new datoms. Used for tempids.
+                    id          ; Id of the entity to which we are attaching a value.
+                    attribute]) ; Attribute on the entity which will point to this value.
 
 (defmulti encode
   "Encode a value as datoms.
   Returns a pair of values: the to assign to the parent attribute
   and a vec of datoms to transact."
   (fn [context value-to-encode]
-    (ref-type (:db context) (:attribute-on-parent context))))
+    (ref-type (:db context) (:attribute context))))
 
 
 (defn determine-element-id [context key-attribute key]
@@ -76,8 +72,8 @@
                    [?parent-id ?attribute ?e]
                    [?e ?key-attribute ?key]]
                  (:db context)
-                 (:attribute-on-parent context)
-                 (:parent-entity-id context)
+                 (:attribute context)
+                 (:id context)
                  key-attribute
                  key))
       (d/tempid (:partition context))))
@@ -90,23 +86,50 @@
                              :where
                              [?parent-id ?attribute ?e]]
                            (:db context)
-                           (:attribute-on-parent context)
-                           (:parent-entity-id context)))))
+                           (:attribute context)
+                           (:id context)))))
 
-(defn encode-pair [context key-attribute k v]
-  (let [element-id (determine-element-id context key-attribute k)
+
+(defn determine-key-attribute [context]
+  (case (ref-type (:db context) (:attribute context))
+    :ref.type/map :element.map/key
+    :ref.type/vector :element.vector/index
+    :ref.type/value nil
+    nil nil))
+
+(defn encode-value
+  "Encode a value to a list of values/references and datoms to add or retract from the current context."
+  [context value]
+  (let [[encoded-value datoms] (encode context value)
+        value-attribute (:attribute context)]
+    [(:id context) (concat datoms
+                           (if (sequential? encoded-value)
+                             (map (fn [encoded-value]
+                                    [(:operation context) (:id context) value-attribute encoded-value]) encoded-value)
+                             [[(:operation context) (:id context) value-attribute encoded-value]]))]))
+
+(defn encode-pair
+  "Encode a key/value or index/value pair as a list of references and datoms to add or retract to the current context."
+  [context key-attribute k v]
+  (let [id (determine-element-id context key-attribute k)
         value-attribute (element-value-attribute v)
-        element-context (assoc context :parent-entity-id element-id :attribute-on-parent value-attribute )
-        [encoded-values datoms] (encode element-context v)]
-    [element-id (concat datoms
-                        [[(:operation context) element-id key-attribute k]]
-                        (if (sequential? encoded-values)
-                          (map (fn [encoded-value] [(:operation context) element-id value-attribute encoded-value]) encoded-values)
-                          [[(:operation context) element-id value-attribute encoded-values]]))]))
+        element-context (assoc context :id id :attribute value-attribute )
+        key-datom [(:operation context) id key-attribute k]]
+    (let [[values datoms] (encode-value element-context v)]
+      [values (conj datoms key-datom)])))
+
+(defn condense-elements
+  "Merge a list of value - datom list pairs."
+  [elements]
+  (reduce (fn [[accumulated-values accumulated-datoms]
+              [value datoms]]
+            [(concat accumulated-values (flatten [value])) (concat accumulated-datoms datoms)])
+          [[] []]
+          elements))
 
 (defmethod encode :ref.type/map [context value-to-encode]
   (when-not (map? value-to-encode)
-    (throw (java.lang.IllegalArgumentException. (str (:attribute-on-parent context) " expects a map. Got " value-to-encode)) ))
+    (throw (java.lang.IllegalArgumentException. (str (:attribute context) " expects a map. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
     [:ref.map/empty []]
     (condense-elements (map (fn [[k, v]] (encode-pair context :element.map/key k v))
@@ -114,7 +137,7 @@
 
 (defmethod encode :ref.type/vector [context value-to-encode]
   (when-not (vector? value-to-encode)
-    (throw (java.lang.IllegalArgumentException. (str (:attribute-on-parent context) " expects a vector. Got " value-to-encode)) ))
+    (throw (java.lang.IllegalArgumentException. (str (:attribute context) " expects a vector. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
     [:ref.vector/empty []]
     (condense-elements (map (fn [[i, v]] (encode-pair context :element.vector/index i v))
@@ -127,33 +150,31 @@
 (defmethod encode nil [_ value-to-encode]
   [value-to-encode []])
 
+(defn encode-data [context data]
+  (mapcat (fn [[attribute, value]]
+            (second (encode-value (assoc context :attribute attribute) value)))
+          data))
+
+(defn remove-conflicts
+  "Remove conflicting additions & retractions."
+  [additions retractions]
+  (let [conflicts (clojure.set/intersection (apply hash-set (map rest retractions)) (apply hash-set (map rest additions)))]
+    (let [conflict? (fn [datom] (contains? conflicts (rest datom)))
+          datoms (remove conflict? (concat retractions additions))]
+      datoms)))
 
 (declare undatomize)
 
 (defn datomize
   [db entity & {:keys [partition] :or {partition :db.part/user}}]
-  (let [entity-id (:db/id entity)
+  (let [id (:db/id entity)
         data (dissoc entity :db/id)
-        existing-entity (if (pos? (d/entid db entity-id)) (dissoc (undatomize (d/entity db entity-id)) :db/id) {})
-        [new-pairs obsolete-pairs unchanged-pairs] (clojure.data/diff data existing-entity)]
-    (let [retractions (second (condense-elements (map (fn [[attribute, value]]
-                                                        (let [[encoded-values datoms] (encode (->Context :db/retract db partition entity-id attribute) value)]
-                                                          [entity-id (concat datoms
-                                                                             (if (sequential? encoded-values)
-                                                                             (map (fn [encoded-value] [:db/retract entity-id attribute encoded-value]) encoded-values)
-                                                                             [[:db/retract entity-id attribute encoded-values]]))]))
-                                                      obsolete-pairs)))
-          additions (second (condense-elements (map (fn [[attribute, value]]
-                                                      (let [[encoded-values datoms] (encode (->Context :db/add db partition entity-id attribute) value)]
-                                                        [entity-id (concat datoms
-                                                                           (if (sequential? encoded-values)
-                                                                             (map (fn [encoded-value] [:db/add entity-id attribute encoded-value]) encoded-values)
-                                                                             [[:db/add entity-id attribute encoded-values]]))]))
-                                                    new-pairs)))]
-      (let [conflicts (clojure.set/intersection (apply hash-set (map rest retractions)) (apply hash-set (map rest additions)))]
-        (let [conflict? (fn [datom] (contains? conflicts (rest datom)))
-              datoms (remove conflict? (concat retractions additions))]
-          datoms)))))
+        existing-entity (if (pos? (d/entid db id)) (dissoc (undatomize (d/entity db id)) :db/id) {})
+        [data-to-add data-to-retract _] (clojure.data/diff data existing-entity)
+        context (map->Context {:db db :partition partition :id id})]
+    (let [retractions (encode-data (assoc context :operation :db/retract) data-to-retract)
+          additions (encode-data (assoc context :operation :db/add) data-to-add)]
+      (remove-conflicts additions retractions))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Retrieval
@@ -163,15 +184,15 @@
 (defn decode
   "Convert a datomized element to a collection [key value] pair"
   [entity element]
-  (cond
-   (instance? clojure.lang.ILookup element) (let [key (or (get element :element.map/key) (get element :element.vector/index))
-                                                  value-attribute (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element)))
-                                                  value (value-attribute element)]
-                                              (cond
-                                               (and key value-attribute) [key (decode-elements entity value-attribute value)]
-                                               (not (nil? value-attribute)) value
-                                               :else element))
-   :else element))
+  (if (instance? clojure.lang.ILookup element)
+    (let [key (or (get element :element.map/key) (get element :element.vector/index))
+          value-attribute (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element)))
+          value (value-attribute element)]
+      (cond
+       (and key value-attribute) [key (decode-elements entity value-attribute value)]
+       (not (nil? value-attribute)) value
+       :else element))
+    element))
 
 (defn decode-elements
   "Convert datomized collection elements back into a collection."
