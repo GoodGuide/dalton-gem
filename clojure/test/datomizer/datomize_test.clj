@@ -103,18 +103,17 @@
 
 (defn round-trip
   "Store, then retrieve a value to/from Datomic."
-  [value]
-  (let [dbc (fresh-dbc)]
-    (store-test-entity dbc value)
-    (let [query-result (q '[:find ?e :where [?e :db/doc "Test entity."]] (db dbc))
-          entity (d/entity (db dbc) (ffirst query-result))
-          data (undatomize entity)]
-      ((attribute-for-value value) data))))
+  [dbc value]
+  (store-test-entity dbc value)
+  (let [query-result (q '[:find ?e :where [?e :db/doc "Test entity."]] (db dbc))
+        entity (d/entity (db dbc) (ffirst query-result))
+        data (undatomize entity)]
+    ((attribute-for-value value) data)))
 
 (defn round-trip-test
   "Test that a value is stored and retrieved from Datomic."
   [value]
-  (is (equivalent? value (round-trip value))))
+  (is (equivalent? value (round-trip (fresh-dbc) value))))
 
 (deftest test-datomize
   (testing "of an empty map"
@@ -289,8 +288,14 @@
 
 (def prop-round-trip
   (prop/for-all [value datomizable-value]
-                (let [result (round-trip value)]
-                  (equivalent? value result))))
+                (let [dbc (fresh-dbc)
+                      result (round-trip dbc value)
+                      garbage (invalid-elements (db dbc))]
+                  (when-not (= 0 (count garbage))
+                    (print "invalid elements: ")
+                    (pprint garbage))
+                  (and (= [] garbage)
+                       (equivalent? value result)))))
 
 (defspec quickcheck-round-trip
   30

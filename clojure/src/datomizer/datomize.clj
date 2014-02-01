@@ -233,3 +233,33 @@
   (d/transact dbc [[:dmzr.datomize {:db/id (d/tempid :db.part/user) :test/map {:a 1}}]])
   (undatomize (d/entity (db dbc) 17592186046111)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Integrity checks
+
+(defn retrieve-all-elements [db]
+  (let [rules '[[[element? ?e] [_ :test/map ?e]]]]
+    (map (fn [x] (->> x first (d/entity db) d/touch)) (q '[:find ?e :in $ % :where (element? ?e)] db rules))))
+
+(defn valid? [db element]
+  (let [references (d/datoms db :vaet (:db/id element))
+        ownerships (filter (fn [datom] (:is-component  (d/attribute db (.a datom)))) references)
+        ownership (first ownerships)
+        ownership-type (:ref/type (d/entity db (.a ownership)))
+        attributes (apply hash-set (keys element))]
+    (and  #_(= 1 (count ownerships))
+          (case ownership-type
+            :ref.type/map (or (= (d/entity db :ref.map/empty) element)
+                              (and (contains? attributes :element.map/key)
+                                   (not (contains? attributes :element.vector/index))
+                                   (some #(re-matches #"^:element\.value/.*" (str %)) attributes)))
+            :ref.type/vector (or (= (d/entity db :ref.vector/empty))
+                                 (and (not (contains? (keys element) :element.map/key))
+                                      (contains? attributes :element.vector/index)
+                                      (some #(re-matches #"^:element\.value/.*" (str %)) attributes)))
+            :ref.type/value (and (not (contains? attributes :element.map/key))
+                                 (not (contains? attributes :element.vector/index))
+                                 (some #(re-matches #"^:element\.value/.*" (str %)) attributes))))))
+
+(defn invalid-elements [db]
+  (remove (partial valid? db) (retrieve-all-elements db)))

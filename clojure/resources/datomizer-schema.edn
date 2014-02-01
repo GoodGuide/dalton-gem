@@ -9,7 +9,7 @@
   :db/valueType :db.type/keyword
   :db/cardinality :db.cardinality/one
   :db/isComponent true
-  :db/doc "T of entity pointed to by this ref."
+  :db/doc "Type of entity pointed to by this ref."
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
