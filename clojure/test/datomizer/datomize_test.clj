@@ -95,18 +95,20 @@
         :else :test/value))
 
 (defn store-test-entity [dbc value]
-  (let [entity {:db/id (d/tempid :db.part/user)
-                :db/doc "Test entity."
-                (attribute-for-value value) value}
-        entity-datoms (datomize (db dbc) entity)]
-    @(d/transact dbc entity-datoms)))
+  (let [tempid (d/tempid :db.part/user)
+        entity-map {:db/id tempid
+                    :db/doc "Test entity."
+                    (attribute-for-value value) value}
+        entity-datoms (datomize (db dbc) entity-map)
+        tx-result @(d/transact dbc entity-datoms)
+        entity-id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) tempid)
+        entity (d/entity (:db-after tx-result) entity-id)]
+    (d/touch entity)))
 
 (defn round-trip
   "Store, then retrieve a value to/from Datomic."
   [dbc value]
-  (store-test-entity dbc value)
-  (let [query-result (q '[:find ?e :where [?e :db/doc "Test entity."]] (db dbc))
-        entity (d/entity (db dbc) (ffirst query-result))
+  (let [entity (store-test-entity dbc value)
         data (undatomize entity)]
     ((attribute-for-value value) data)))
 
