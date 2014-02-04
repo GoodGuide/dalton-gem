@@ -47,7 +47,7 @@
     byte-array-class :element.value/bytes
     ;; :element.value/fn
     ;; :element.value/ref
-    (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (class value))))
+    (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (.toString (class value)))))
     ))
 
 

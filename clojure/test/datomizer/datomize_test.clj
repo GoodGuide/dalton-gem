@@ -94,8 +94,8 @@
         (vector? value) :test/vector
         :else :test/value))
 
-(defn store-test-entity [dbc value]
-  (let [tempid (d/tempid :db.part/user)
+(defn store-test-entity [dbc value & {:keys [id]}]
+  (let [tempid (or (:id id) (d/tempid :db.part/user))
         entity-map {:db/id tempid
                     :db/doc "Test entity."
                     (attribute-for-value value) value}
@@ -291,14 +291,31 @@
 (def prop-round-trip
   (prop/for-all [value datomizable-value]
                 (let [dbc (fresh-dbc)
-                      result (round-trip dbc value)
+                      result (round-trip dbc (dbg value))
                       garbage (invalid-elements (db dbc))]
                   (when-not (= 0 (count garbage))
                     (print "invalid elements: ")
                     (pprint garbage))
                   (and (= [] garbage)
                        (equivalent? value result)))))
+(def prop-update
+  (prop/for-all [initial-value datomizable-value
+                 subsequent-value datomizable-value]
+                (let [dbc (fresh-dbc)
+                      initial-entity (store-test-entity dbc (dbg initial-value))
+                      result-entity (store-test-entity dbc (merge (dbg subsequent-value)) :id (:db/id initial-entity))
+                      result ((attribute-for-value subsequent-value) (undatomize result-entity))
+                      garbage (invalid-elements (db dbc))]
+                  (when-not (= 0 (count garbage))
+                    (print "invalid elements: ")
+                    (pprint garbage))
+                  (and (= [] garbage)
+                       (equivalent? subsequent-value result)))))
 
-(defspec quickcheck-round-trip
-  30
+#_(defspec quickcheck-round-trip
+  50
   prop-round-trip)
+
+(defspec quickcheck-update
+  50
+  prop-update)
