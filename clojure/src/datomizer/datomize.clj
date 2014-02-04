@@ -78,16 +78,26 @@
                  key))
       (d/tempid (:partition context))))
 
+(defn determine-empty-marker-id [context]
+  (or (ffirst (q '[:find ?e
+                   :in $ ?attribute ?parent-id
+                   :where
+                   [?parent-id ?attribute ?e]
+                   [?e :ref/empty true]]
+                 (:db context)
+                 (:attribute context)
+                 (:id context)))
+      (d/tempid (:partition context))))
+
 (defn determine-variant-id [context]
-  (case (:operation context)
-    :db/add (d/tempid (:partition context))
-    :db/retract (ffirst (q '[:find ?e
-                             :in $ ?attribute ?parent-id
-                             :where
-                             [?parent-id ?attribute ?e]]
-                           (:db context)
-                           (:attribute context)
-                           (:id context)))))
+  (or (ffirst (q '[:find ?e
+                    :in $ ?attribute ?parent-id
+                    :where
+                    [?parent-id ?attribute ?e]]
+                  (:db context)
+                  (:attribute context)
+                  (:id context)))
+      (d/tempid (:partition context))))
 
 
 (defn determine-key-attribute [context]
@@ -127,11 +137,15 @@
           [[] []]
           elements))
 
+(defn encode-empty [context]
+  (let [id (determine-empty-marker-id context)]
+    [id [[(:operation context) id :ref/empty true]]]))
+
 (defmethod encode :ref.type/map [context value-to-encode]
   (when-not (map? value-to-encode)
     (throw (java.lang.IllegalArgumentException. (str (:attribute context) " expects a map. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
-    [:ref.map/empty []]
+    (encode-empty context)
     (condense-elements (map (fn [[k, v]] (encode-pair context :element.map/key k v))
                             value-to-encode))))
 
@@ -139,7 +153,7 @@
   (when-not (vector? value-to-encode)
     (throw (java.lang.IllegalArgumentException. (str (:attribute context) " expects a vector. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
-    [:ref.vector/empty []]
+    (encode-empty context)
     (condense-elements (map (fn [[i, v]] (encode-pair context :element.vector/index i v))
                             (zipmap (range) value-to-encode)))))
 
@@ -197,12 +211,10 @@
 (defn decode-elements
   "Convert datomized collection elements back into a collection."
   [entity key elements]
-  (case elements
-    #{:ref.vector/empty} []
-    #{:ref.map/empty} {}
+  (let [empty? (and (coll? elements) (some :ref/empty elements))]
     (case (ref-type (.db entity) key)
-      (:ref/map :ref.type/map) (apply hash-map (mapcat #(decode entity %) elements))
-      (:ref/vector :ref.type/vector) (map last (sort-by first (map #(decode entity %) elements)))
+      (:ref/map :ref.type/map) (if empty? {} (apply hash-map (mapcat #(decode entity %) elements)))
+      (:ref/vector :ref.type/vector) (if empty? [] (map last (sort-by first (map #(decode entity %) elements))))
       (:ref.type/value) (decode entity elements)
       elements)))
 
@@ -249,11 +261,11 @@
         attributes (apply hash-set (keys element))]
     (and  #_(= 1 (count ownerships))
           (case ownership-type
-            :ref.type/map (or (= (d/entity db :ref.map/empty) element)
+            :ref.type/map (or (:ref/empty element)
                               (and (contains? attributes :element.map/key)
                                    (not (contains? attributes :element.vector/index))
                                    (some #(re-matches #"^:element\.value/.*" (str %)) attributes)))
-            :ref.type/vector (or (= (d/entity db :ref.vector/empty))
+            :ref.type/vector (or (:ref/empty element)
                                  (and (not (contains? (keys element) :element.map/key))
                                       (contains? attributes :element.vector/index)
                                       (some #(re-matches #"^:element\.value/.*" (str %)) attributes)))

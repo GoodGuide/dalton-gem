@@ -20,6 +20,7 @@
     :db/ident :test/map
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/many
+    :db/unique :db.unique/value
     :db/doc "A reference attribute for testing map marshalling"
     :db/isComponent true
     :ref/type :ref.type/map
@@ -28,6 +29,7 @@
     :db/ident :test/vector
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/many
+    :db/unique :db.unique/value
     :db/doc "A reference attribute for testing vector marshalling"
     :db/isComponent true
     :ref/type :ref.type/vector
@@ -36,6 +38,7 @@
     :db/ident :test/value
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/one
+    :db/unique :db.unique/value
     :db/doc "A reference attribute for testing variant marshalling"
     :db/isComponent true
     :ref/type :ref.type/value
@@ -189,7 +192,8 @@
   (testing "with an attribute representing a map"
     (let [dbc (fresh-dbc)
           tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
-                                         :test/map :ref.map/empty}])
+                                       :test/map {:db/id (d/tempid :db.part/user)
+                                                  :ref/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
       (is (= :ref.type/map (ref-type (db dbc) :test/map)))))
@@ -197,7 +201,8 @@
   (testing "with an attribute representing a vector"
     (let [dbc (fresh-dbc)
           tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
-                                         :test/vector :ref.vector/empty}])
+                                         :test/vector {:db/id (d/tempid :db.part/user)
+                                                  :ref/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
       (is (= :ref.type/vector (ref-type (db dbc) :test/vector))))))
@@ -291,7 +296,7 @@
 (def prop-round-trip
   (prop/for-all [value datomizable-value]
                 (let [dbc (fresh-dbc)
-                      result (round-trip dbc (dbg value))
+                      result (round-trip dbc value)
                       garbage (invalid-elements (db dbc))]
                   (when-not (= 0 (count garbage))
                     (print "invalid elements: ")
@@ -312,7 +317,7 @@
                   (and (= [] garbage)
                        (equivalent? subsequent-value result)))))
 
-#_(defspec quickcheck-round-trip
+(defspec quickcheck-round-trip
   50
   prop-round-trip)
 
