@@ -33,7 +33,7 @@
 
  {:db/id #db/id[:db.part/db]
   :db/ident :element.value/nil
-  :db/valueType :db.type/boolean
+  :db/valueType :db.type/keyword
   :db/cardinality :db.cardinality/one
   :db/doc "Nil value of vector or map element."
   :db.install/_attribute :db.part/db}

@@ -88,7 +88,10 @@
 
 (defn equivalent? [expected actual]
   "Compare with = (wrapping byte arrays in seqs to check them by equivalence instead of id)."
-  (apply = (map walk-wrapping-byte-arrays [expected actual])))
+  (cond
+   (or (nil? actual) (nil? expected)) (and (nil? expected) (nil? actual))
+   (coll? expected) (apply = (map walk-wrapping-byte-arrays [expected actual]))
+   :else (= expected actual)))
 
 (defn attribute-for-value
   "Determine the correct reference type for a value."
@@ -98,13 +101,13 @@
         :else :test/value))
 
 (defn store-test-entity [dbc value & {:keys [id]}]
-  (let [tempid (or (:id id) (d/tempid :db.part/user))
-        entity-map {:db/id tempid
+  (let [id (or id (d/tempid :db.part/user))
+        entity-map {:db/id id
                     :db/doc "Test entity."
                     (attribute-for-value value) value}
         entity-datoms (datomize (db dbc) entity-map)
         tx-result @(d/transact dbc entity-datoms)
-        entity-id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) tempid)
+        entity-id (if (number? id) id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) id))
         entity (d/entity (:db-after tx-result) entity-id)]
     (d/touch entity)))
 
@@ -121,6 +124,10 @@
   (is (equivalent? value (round-trip (fresh-dbc) value))))
 
 (deftest test-datomize
+  (testing "of a number"
+    (round-trip-test 23))
+  (testing "of a nil"
+    (round-trip-test nil))
   (testing "of an empty map"
     (round-trip-test {}))
   (testing "a map with one pair"
@@ -142,16 +149,30 @@
   (testing "a byte array value"
     (round-trip-test (byte-array [(byte 1) (byte 2)]))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Update tests
+
+(defn update [dbc initial-value subsequent-value]
+  (let [initial-entity (store-test-entity dbc initial-value)
+        result-entity (store-test-entity dbc subsequent-value :id (:db/id initial-entity))]
+    ((attribute-for-value subsequent-value) (undatomize result-entity))))
+
+(defn update-test
+  "Test that a value stored in Datomic can be updated (without creating malformed elements)."
+  [initial-value subsequent-value]
+  (let [dbc (fresh-dbc)]
+    (is (equivalent? subsequent-value (update dbc initial-value subsequent-value)))
+    (is (= [] (invalid-elements (db dbc))))))
+
 (deftest test-update
+
   (testing "map update"
-    (let [original-data {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
-          update-data {:same "stays the same", :new "is added", :different "see, now different!" :nested {:a 1 :b 4 :d 5} }
-          dbc (fresh-dbc)
-          tempid  (d/tempid :db.part/user -1)
-          add-tx-result @(d/transact dbc (datomize (db dbc) {:db/id tempid :test/map original-data}))
-          entity-id (d/resolve-tempid (db dbc) (:tempids add-tx-result) tempid)]
-      @(d/transact dbc (datomize (db dbc) {:db/id entity-id :test/map update-data}))
-      (is (= update-data (:test/map (undatomize (d/entity (db dbc) entity-id))))))))
+    (update-test {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
+                 {:same "stays the same", :new "is added", :different "see, now different!" :nested {:a 1 :b 4 :d 5} }))
+
+  (testing "generative failure"
+    (update-test {}
+                 {:0 nil})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit Testing
@@ -303,13 +324,12 @@
                     (pprint garbage))
                   (and (= [] garbage)
                        (equivalent? value result)))))
+
 (def prop-update
   (prop/for-all [initial-value datomizable-value
                  subsequent-value datomizable-value]
                 (let [dbc (fresh-dbc)
-                      initial-entity (store-test-entity dbc (dbg initial-value))
-                      result-entity (store-test-entity dbc (merge (dbg subsequent-value)) :id (:db/id initial-entity))
-                      result ((attribute-for-value subsequent-value) (undatomize result-entity))
+                      result (update dbc initial-value subsequent-value)
                       garbage (invalid-elements (db dbc))]
                   (when-not (= 0 (count garbage))
                     (print "invalid elements: ")
@@ -318,9 +338,9 @@
                        (equivalent? subsequent-value result)))))
 
 (defspec quickcheck-round-trip
-  50
+  30
   prop-round-trip)
 
 (defspec quickcheck-update
-  50
+  30
   prop-update)

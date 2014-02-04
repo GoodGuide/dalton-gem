@@ -32,23 +32,25 @@
 (defn element-value-attribute
   "Datomic attribute to use for element value, based on its type."
   [value]
-  (condp instance? value
-    java.lang.String :element.value/string
-    java.lang.Long :element.value/long
-    java.lang.Float :element.value/float
-    java.lang.Double :element.value/double
-    java.lang.Boolean :element.value/boolean
-    java.util.Date :element.value/instant
-    clojure.lang.Keyword :element.value/keyword
-    java.util.List :element.value/vector
-    java.util.Map :element.value/map
-    java.math.BigDecimal :element.value/bigdec
-    java.math.BigInteger :element.value/bigint
-    byte-array-class :element.value/bytes
-    ;; :element.value/fn
-    ;; :element.value/ref
-    (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (.toString (class value)))))
-    ))
+  (if (nil? value)
+    :element.value/nil
+    (condp instance? value
+      java.lang.String :element.value/string
+      java.lang.Long :element.value/long
+      java.lang.Float :element.value/float
+      java.lang.Double :element.value/double
+      java.lang.Boolean :element.value/boolean
+      java.util.Date :element.value/instant
+      clojure.lang.Keyword :element.value/keyword
+      java.util.List :element.value/vector
+      java.util.Map :element.value/map
+      java.math.BigDecimal :element.value/bigdec
+      java.math.BigInteger :element.value/bigint
+      byte-array-class :element.value/bytes
+      ;; :element.value/fn
+      ;; :element.value/ref
+      (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (.toString (class value)))))
+      )))
 
 
 (defrecord Context [operation   ; What operation we're currently performing: :db/add or :db/retract
@@ -114,8 +116,8 @@
         value-attribute (:attribute context)]
     [(:id context) (concat datoms
                            (if (sequential? encoded-value)
-                             (map (fn [encoded-value]
-                                    [(:operation context) (:id context) value-attribute encoded-value]) encoded-value)
+                             (map (fn [value]
+                                    [(:operation context) (:id context) value-attribute value]) encoded-value)
                              [[(:operation context) (:id context) value-attribute encoded-value]]))]))
 
 (defn encode-pair
@@ -142,16 +144,12 @@
     [id [[(:operation context) id :ref/empty true]]]))
 
 (defmethod encode :ref.type/map [context value-to-encode]
-  (when-not (map? value-to-encode)
-    (throw (java.lang.IllegalArgumentException. (str (:attribute context) " expects a map. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
     (encode-empty context)
     (condense-elements (map (fn [[k, v]] (encode-pair context :element.map/key k v))
                             value-to-encode))))
 
 (defmethod encode :ref.type/vector [context value-to-encode]
-  (when-not (vector? value-to-encode)
-    (throw (java.lang.IllegalArgumentException. (str (:attribute context) " expects a vector. Got " value-to-encode)) ))
   (if (empty? value-to-encode)
     (encode-empty context)
     (condense-elements (map (fn [[i, v]] (encode-pair context :element.vector/index i v))
@@ -159,10 +157,12 @@
 
 (defmethod encode :ref.type/value [context value-to-encode]
   (let [id (determine-variant-id context)]
-    [id [[(:operation context) id (element-value-attribute value-to-encode) value-to-encode]]]))
+    (encode-value (assoc context :id id :attribute (element-value-attribute value-to-encode)) value-to-encode)))
 
 (defmethod encode nil [_ value-to-encode]
-  [value-to-encode []])
+  (if (nil? value-to-encode)
+    [:NIL []]
+    [value-to-encode []]))
 
 (defn encode-data [context data]
   (mapcat (fn [[attribute, value]]
@@ -202,10 +202,16 @@
     (let [key (or (get element :element.map/key) (get element :element.vector/index))
           value-attribute (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element)))
           value (value-attribute element)]
-      (cond
-       (and key value-attribute) [key (decode-elements entity value-attribute value)]
-       (not (nil? value-attribute)) value
-       :else element))
+      (if key
+        (if value-attribute
+          [key (decode-elements entity value-attribute value)]
+          [key nil]) ; should never happen
+
+        (if value-attribute
+          (if (= :element.value/nil value-attribute)
+            nil
+            value)
+          element)))
     element))
 
 (defn decode-elements
@@ -216,7 +222,9 @@
       (:ref/map :ref.type/map) (if empty? {} (apply hash-map (mapcat #(decode entity %) elements)))
       (:ref/vector :ref.type/vector) (if empty? [] (map last (sort-by first (map #(decode entity %) elements))))
       (:ref.type/value) (decode entity elements)
-      elements)))
+      (if (= :element.value/nil key)
+        nil
+        elements))))
 
 (defn undatomize
   [entity]
@@ -259,7 +267,7 @@
         ownership (first ownerships)
         ownership-type (:ref/type (d/entity db (.a ownership)))
         attributes (apply hash-set (keys element))]
-    (and  #_(= 1 (count ownerships))
+    (and  (= 1 (count ownerships))
           (case ownership-type
             :ref.type/map (or (:ref/empty element)
                               (and (contains? attributes :element.map/key)
