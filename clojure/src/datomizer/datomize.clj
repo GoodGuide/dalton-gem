@@ -25,6 +25,36 @@
     (:ref/type attribute)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Datom processing
+
+
+(defn normalize-tx-data
+  "Remove add/remove operation and resolve idents to entity ids"
+  [db tx-data]
+  ;; TODO: translate values for refrence attributes :-/
+  (apply hash-set (map (fn [[operation entity-id attribute value] ]
+                         [(d/entid db entity-id) (d/entid db attribute) value])
+                       tx-data)))
+
+(defn remove-conflicts
+  "Remove conflicting additions & retractions."
+  [db additions retractions]
+  (let [conflicts (clojure.set/intersection (normalize-tx-data db retractions) (normalize-tx-data db additions) )]
+    (let [conflict? (fn [datom] (contains? conflicts (rest datom)))
+          datoms (remove conflict? (concat retractions additions))]
+      datoms)))
+
+(defn transaction-datom?
+  "Is this a datom about a transaction?"
+  [db datum]
+  (= :db.part/tx (d/ident db (d/part (.e datum)))))
+
+(defn remove-transaction-datoms
+  "Returns a list of datoms with transaction (creation) datoms removed"
+  [db datoms]
+  (remove (partial transaction-datom? db) datoms))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Storage
 
 (def byte-array-class (class (byte-array 1))) ; is there a clojure literal for the byte-array class?
@@ -168,32 +198,6 @@
   (mapcat (fn [[attribute, value]]
             (second (encode-value (assoc context :attribute attribute) value)))
           data))
-
-(defn normalize-tx-data
-  "Remove add/remove operation and resolve idents to entity ids"
-  [db tx-data]
-  ;; TODO: translate values for refrence attributes :-/
-  (apply hash-set (map (fn [[operation entity-id attribute value] ]
-                         [(d/entid db entity-id) (d/entid db attribute) value])
-                       tx-data)))
-
-(defn remove-conflicts
-  "Remove conflicting additions & retractions."
-  [db additions retractions]
-  (let [conflicts (clojure.set/intersection (normalize-tx-data db retractions) (normalize-tx-data db additions) )]
-    (let [conflict? (fn [datom] (contains? conflicts (rest datom)))
-          datoms (remove conflict? (concat retractions additions))]
-      datoms)))
-
-(defn transaction-datom?
-  "Is this a datom about a transaction?"
-  [db datum]
-  (= :db.part/tx (d/ident db (d/part (.e datum)))))
-
-(defn remove-transaction-datoms
-  "Returns a list of datoms with transaction (creation) datoms removed"
-  [db datoms]
-  (remove (partial transaction-datom? db) datoms))
 
 (defn datomize
   [db entity & {:keys [partition] :or {partition :db.part/user}}]
