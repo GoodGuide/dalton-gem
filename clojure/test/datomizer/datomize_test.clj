@@ -91,6 +91,8 @@
   (cond
    (or (nil? actual) (nil? expected)) (and (nil? expected) (nil? actual))
    (coll? expected) (apply = (map walk-wrapping-byte-arrays [expected actual]))
+   (instance? byte-array-class expected) (and (instance? byte-array-class actual)
+                                          (= (seq expected) (seq actual)))
    :else (= expected actual)))
 
 (defn attribute-for-value
@@ -170,7 +172,11 @@
     (update-test {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
                  {:same "stays the same", :new "is added", :different "see, now different!" :nested {:a 1 :b 4 :d 5} }))
 
-  (testing "generative failure"
+  (testing "updating a byte-array"
+    (update-test (byte-array [(byte 11) (byte 22)])
+                 (byte-array [(byte 33) (byte 44)])))
+
+  (testing "updating a map with nil values"
     (update-test {}
                  {:0 nil})))
 
@@ -312,7 +318,7 @@
                (container-type-keyword-keys (gen/resize (quot size 2) (gen/sized (sized-container-keyword-keys inner-type))))]))))
 
 (def datomizable-value
-  (gen/sized (sized-container-keyword-keys datomizable-type)))
+  (gen/one-of [datomizable-type (gen/sized (sized-container-keyword-keys datomizable-type))]))
 
 (def prop-round-trip
   (prop/for-all [value datomizable-value]
