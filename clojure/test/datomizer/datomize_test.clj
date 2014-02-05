@@ -344,9 +344,9 @@
                        (equivalent? subsequent-value result)))))
 
 (defspec quickcheck-round-trip
-  30
+  50
   prop-round-trip)
 
 (defspec quickcheck-update
-  30
+  50
   prop-update)
