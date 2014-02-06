@@ -4,7 +4,8 @@
             [simple-check.generators :as gen]
             [simple-check.properties :as prop]
             [simple-check.clojure-test :as ct :refer (defspec)]
-            [clojure.pprint :refer (pprint)])
+            [clojure.pprint :refer (pprint)]
+            [datomizer.datomize.encode :refer :all])
   (:use clojure.test
         datomizer.datomize
         datomizer.debug
