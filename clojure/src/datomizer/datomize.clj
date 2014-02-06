@@ -70,7 +70,7 @@
 (defn remove-conflicts
   "Remove conflicting additions & retractions."
   [db additions retractions]
-  (let [conflicts (clojure.set/intersection (into #{} (map rest retractions)) (into #{} (map rest additions)) )]
+  (let [conflicts (clojure.set/intersection (set (map rest retractions)) (set (map rest additions)) )]
     (remove (fn [datom] (contains? conflicts (rest datom)))
             (concat retractions additions))))
 
