@@ -235,11 +235,6 @@
       (is (= :ref.type/vector (ref-type (db dbc) :test/vector))))))
 
 
-(deftest test-decode)
-(deftest test-decode-elements)
-(deftest test-undatomize)
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Round-Trip Generative Testing
 
