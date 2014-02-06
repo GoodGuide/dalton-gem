@@ -79,7 +79,7 @@
 
 (def byte-array-class (class (byte-array 1))) ; is there a clojure literal for the byte-array class?
 
-(defn element-value-attribute
+(defn attribute-for-value
   "Datomic attribute to use for element value, based on its type."
   [value]
   (if (nil? value)
@@ -174,7 +174,7 @@
   "Encode a key/value or index/value pair as a list of references and datoms to add or retract to the current context."
   [context key-attribute k v]
   (let [id (determine-element-id context key-attribute k)
-        value-attribute (element-value-attribute v)
+        value-attribute (attribute-for-value v)
         element-context (assoc context :id id :attribute value-attribute )
         key-datom [(:operation context) id key-attribute k]]
     (let [[values datoms] (encode-value element-context v)]
@@ -193,26 +193,26 @@
   (let [id (determine-empty-marker-id context)]
     [id [[(:operation context) id :ref/empty true]]]))
 
-(defmethod encode :ref.type/map [context value-to-encode]
-  (if (empty? value-to-encode)
+(defmethod encode :ref.type/map [context value]
+  (if (empty? value)
     (encode-empty context)
     (condense-elements (map (fn [[k, v]] (encode-pair context :element.map/key k v))
-                            value-to-encode))))
+                            value))))
 
-(defmethod encode :ref.type/vector [context value-to-encode]
-  (if (empty? value-to-encode)
+(defmethod encode :ref.type/vector [context value]
+  (if (empty? value)
     (encode-empty context)
     (condense-elements (map (fn [[i, v]] (encode-pair context :element.vector/index i v))
-                            (zipmap (range) value-to-encode)))))
+                            (zipmap (range) value)))))
 
-(defmethod encode :ref.type/value [context value-to-encode]
+(defmethod encode :ref.type/value [context value]
   (let [id (determine-variant-id context)]
-    (encode-value (assoc context :id id :attribute (element-value-attribute value-to-encode)) value-to-encode)))
+    (encode-value (assoc context :id id :attribute (attribute-for-value value)) value)))
 
-(defmethod encode nil [_ value-to-encode]
-  (if (nil? value-to-encode)
+(defmethod encode nil [_ value]
+  (if (nil? value)
     [:NIL []]
-    [value-to-encode []]))
+    [value []]))
 
 (defn encode-data [context data]
   (mapcat (fn [[attribute, value]]
@@ -233,33 +233,39 @@
 
 (declare decode-elements)
 
-(defn decode
+(defn element-key
+  [element]
+  (or (get element :element.map/key) (get element :element.vector/index)))
+
+(defn element-value-attribute
+  [element]
+  (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element))))
+
+(defn decode-element
   "Convert a datomized element to a collection [key value] pair"
   [entity element]
-  (if (instance? clojure.lang.ILookup element)
-    (let [key (or (get element :element.map/key) (get element :element.vector/index))
-          value-attribute (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element)))
-          value (value-attribute element)]
-      (if key
-        (if value-attribute
-          [key (decode-elements entity value-attribute value)]
-          [key nil]) ; should never happen
+  (let [key (element-key element)
+        value-attribute (element-value-attribute element)
+        value (value-attribute element)]
+    (if value-attribute
+      [key (decode-elements entity value-attribute value)]
+      [key nil])))
 
-        (if value-attribute
-          (if (= :element.value/nil value-attribute)
-            nil
-            value)
-          element)))
-    element))
+(defn decode-value
+  "Convert a datomized variant value."
+  [entity element]
+  (let [value-attribute (first (filter #(re-matches #"^:element.value/.*" (str %)) (keys element)))
+        value (value-attribute element)]
+    (if (= :element.value/nil value-attribute) nil value)))
 
 (defn decode-elements
   "Convert datomized collection elements back into a collection."
   [entity key elements]
   (let [empty? (and (coll? elements) (some :ref/empty elements))]
     (case (ref-type (.db entity) key)
-      (:ref/map :ref.type/map) (if empty? {} (apply hash-map (mapcat #(decode entity %) elements)))
-      (:ref/vector :ref.type/vector) (if empty? [] (map last (sort-by first (map #(decode entity %) elements))))
-      (:ref.type/value) (decode entity elements)
+      (:ref/map :ref.type/map) (if empty? {} (apply hash-map (mapcat #(decode-element entity %) elements)))
+      (:ref/vector :ref.type/vector) (if empty? [] (map last (sort-by first (map #(decode-element entity %) elements))))
+      (:ref.type/value) (decode-value entity elements)
       (if (= :element.value/nil key)
         nil
         elements))))

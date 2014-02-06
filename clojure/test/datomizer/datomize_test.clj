@@ -95,7 +95,7 @@
                                           (= (seq expected) (seq actual)))
    :else (= expected actual)))
 
-(defn attribute-for-value
+(defn test-attribute
   "Determine the correct reference type for a value."
   [value]
   (cond (map? value) :test/map
@@ -106,7 +106,7 @@
   (let [id (or id (d/tempid :db.part/user))
         entity-map {:db/id id
                     :db/doc "Test entity."
-                    (attribute-for-value value) value}
+                    (test-attribute value) value}
         entity-datoms (datomize (db dbc) entity-map)
         tx-result @(d/transact dbc entity-datoms)
         entity-id (if (number? id) id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) id))
@@ -118,7 +118,7 @@
   [dbc value]
   (let [entity (store-test-entity dbc value)
         data (undatomize entity)]
-    ((attribute-for-value value) data)))
+    ((test-attribute value) data)))
 
 (defn round-trip-test
   "Test that a value is stored and retrieved from Datomic."
@@ -157,7 +157,7 @@
 (defn update [dbc initial-value subsequent-value]
   (let [initial-entity (store-test-entity dbc initial-value)
         result-entity (store-test-entity dbc subsequent-value :id (:db/id initial-entity))]
-    ((attribute-for-value subsequent-value) (undatomize result-entity))))
+    ((test-attribute subsequent-value) (undatomize result-entity))))
 
 (defn update-test
   "Test that a value stored in Datomic can be updated (without creating malformed elements)."
@@ -183,37 +183,37 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit Testing
 
-(deftest test-element-value-attribute
+(deftest test-attribute-for-value
   (testing "with a String"
-    (is (= :element.value/string (element-value-attribute "I'm a string!"))))
+    (is (= :element.value/string (attribute-for-value "I'm a string!"))))
   (testing "with a vector"
-    (is (= :element.value/vector (element-value-attribute [:a :vector]))))
+    (is (= :element.value/vector (attribute-for-value [:a :vector]))))
   (testing "with an java ArrayList"
-    (is (= :element.value/vector (element-value-attribute (java.util.ArrayList. [:an "arraylist"])))))
+    (is (= :element.value/vector (attribute-for-value (java.util.ArrayList. [:an "arraylist"])))))
   (testing "with a clojure map"
-    (is (= :element.value/map (element-value-attribute {:a "map"}))))
+    (is (= :element.value/map (attribute-for-value {:a "map"}))))
   (testing "with a java Map"
-    (is (= :element.value/map (element-value-attribute (java.util.HashMap. {:a "hashmap"})))))
+    (is (= :element.value/map (attribute-for-value (java.util.HashMap. {:a "hashmap"})))))
   (testing "with a Long"
-    (is (= :element.value/long (element-value-attribute 23))))
+    (is (= :element.value/long (attribute-for-value 23))))
   (testing "with a Float"
-    (is (= :element.value/float (element-value-attribute (float 23.1)))))
+    (is (= :element.value/float (attribute-for-value (float 23.1)))))
   (testing "with a Double"
-    (is (= :element.value/double (element-value-attribute 23.1))))
+    (is (= :element.value/double (attribute-for-value 23.1))))
   (testing "with a Boolean"
-    (is (= :element.value/boolean (element-value-attribute true))))
+    (is (= :element.value/boolean (attribute-for-value true))))
   (testing "with a Date"
-    (is (= :element.value/instant (element-value-attribute (java.util.Date.)))))
+    (is (= :element.value/instant (attribute-for-value (java.util.Date.)))))
   (testing "with a keyword"
-    (is (= :element.value/keyword (element-value-attribute :keyword))))
+    (is (= :element.value/keyword (attribute-for-value :keyword))))
   (testing "with a BigDecimal"
-    (is (= :element.value/bigdec (element-value-attribute (java.math.BigDecimal. 23)))))
+    (is (= :element.value/bigdec (attribute-for-value (java.math.BigDecimal. 23)))))
   (testing "with a BigInteger"
-    (is (= :element.value/bigint (element-value-attribute (java.math.BigInteger. "23")))))
+    (is (= :element.value/bigint (attribute-for-value (java.math.BigInteger. "23")))))
   (testing "with a byte array"
-    (is (= :element.value/bytes (element-value-attribute (byte-array 1)))))
+    (is (= :element.value/bytes (attribute-for-value (byte-array 1)))))
   (testing "with something unsupported"
-    (is (thrown? java.lang.IllegalArgumentException (element-value-attribute (Object.))))))
+    (is (thrown? java.lang.IllegalArgumentException (attribute-for-value (Object.))))))
 
 (deftest test-ref-type
   (testing "with an attribute representing a map"
@@ -344,9 +344,9 @@
                        (equivalent? subsequent-value result)))))
 
 (defspec quickcheck-round-trip
-  50
+  30
   prop-round-trip)
 
 (defspec quickcheck-update
-  50
+  30
   prop-update)
