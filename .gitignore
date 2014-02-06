@@ -12,3 +12,5 @@ pkg/*
 /log
 /tmp
 /clojure/target/
+clojure/.lein-failures
+clojure/.lein-repl-history
