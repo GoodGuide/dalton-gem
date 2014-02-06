@@ -1,6 +1,5 @@
 (ns datomizer.debug
-  "Debugging tools."
-  (:require [clojure.pprint :refer [pprint]]))
+  "Debugging tools.")
 
 (def ^:dynamic *debug* true)
 

@@ -1,6 +1,6 @@
 (ns datomizer.utility
   "Junk drawer of useful functions."
-  (:use [datomic.api :as d :only (db q)]))
+  (:require [datomic.api :as d]))
 
 (defn load-datoms-from-edn-resource-file [dbc filename]
   (with-open [r (java.io.PushbackReader. (clojure.java.io/reader (clojure.java.io/resource filename)))]

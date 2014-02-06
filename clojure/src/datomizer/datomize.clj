@@ -1,9 +1,7 @@
 (ns datomizer.datomize
-  (:require [datomizer.debug :refer :all]
-            [datomizer.utility :refer :all]
-            [datomic.api :as d :refer (db q)]
-            [datomizer.datomize.datoms :refer :all]
-            [datomizer.datomize.encode :refer :all]))
+  (:require [datomic.api :as d :refer [db q]]
+            [datomizer.datomize.encode :refer :all]
+            [datomizer.utility :refer :all]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

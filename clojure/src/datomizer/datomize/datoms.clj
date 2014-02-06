@@ -1,9 +1,6 @@
 (ns datomizer.datomize.datoms
   "Datom wrangling."
-  (:require [datomizer.debug :refer :all]
-            [datomizer.utility :refer :all]
-            [clojure.string :as str]
-            [datomic.api :as d :refer (db q)]))
+  (:require [datomic.api :as d]))
 
 (defn Datom->vector
   "Convert a Datom to a vector of [operation entity-id attribute value]"

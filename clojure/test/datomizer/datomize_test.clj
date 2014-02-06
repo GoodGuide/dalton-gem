@@ -1,16 +1,13 @@
 (ns datomizer.datomize-test
   "Tests for datomize."
-  (:require [simple-check.core :as sc]
+  (:require [clojure.pprint :refer [pprint]]
+            [clojure.test :refer :all]
+            [datomic.api :as d :refer [db]]
+            [datomizer.datomize :refer :all]
+            [datomizer.datomize.encode :refer :all]
+            [simple-check.clojure-test :refer [defspec]]
             [simple-check.generators :as gen]
-            [simple-check.properties :as prop]
-            [simple-check.clojure-test :as ct :refer (defspec)]
-            [clojure.pprint :refer (pprint)]
-            [datomizer.datomize.encode :refer :all])
-  (:use clojure.test
-        datomizer.datomize
-        datomizer.debug
-        [datomic.api :as d :only (db q)])
-  (:import (java.util Date)))
+            [simple-check.properties :as prop]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

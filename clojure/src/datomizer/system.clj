@@ -1,8 +1,8 @@
 (ns datomizer.system
   "Running datomizer system (mostly for development)"
-  (:require [datomizer.datomize :as dz]
-            [datomizer.datomize-test :as dzt])
-  (:use [datomic.api :as d :only (db q)]))
+  (:require [datomic.api :as d]
+            [datomizer.datomize :as dz]
+            [datomizer.datomize-test :as dzt]))
 
 (defn system
   "Returns a new instance of the application"

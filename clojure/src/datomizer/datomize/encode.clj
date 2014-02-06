@@ -1,8 +1,6 @@
 (ns datomizer.datomize.encode
   "Encode entities by datomizing their data-structures."
-  (:require [datomizer.debug :refer :all]
-            [datomizer.utility :refer :all]
-            [datomic.api :as d :refer (db q)]
+  (:require [datomic.api :as d :refer [q]]
             [datomizer.datomize.datoms :refer :all]))
 
 
