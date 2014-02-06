@@ -1,9 +1,8 @@
 (ns datomizer.datomize
   (:require [datomizer.debug :refer :all]
             [datomizer.utility :refer :all]
-            clojure.data
-            [clojure.string :as str]
-            [datomic.api :as d :refer (db q)]))
+            [datomic.api :as d :refer (db q)]
+            [datomizer.datomize.datoms :refer :all]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -14,70 +13,16 @@
   [dbc]
   (load-datoms-from-edn-resource-file dbc "datomizer-schema.edn"))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Introspection
+;; Storage
+
+(def byte-array-class (class (byte-array 1))) ; is there a clojure literal for the byte-array class?
 
 (defn ref-type
   "Determine the reference type of an attribute."
   [db key]
   (let [attribute (d/entity db (keyword key))]
     (:ref/type attribute)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Datom processing
-
-(defn Datom->vector
-  "Convert a Datom to a vector of [operation entity-id attribute value]"
-  [datom]
-  [(if (.added datom) :db/add :db/retract)
-   (.e datom)
-   (.a datom)
-   (.v datom)])
-
-(defn resolve-idents
-  "Resolves any idents in a datom addition/retraction."
-  [db [op e a v]]
-  (let [ref? (= datomic.Attribute/TYPE_REF (.valueType (d/attribute db a)))]
-    [op (d/entid db e) (d/entid db a) (if ref? (d/entid db v) v)]))
-
-(defn transaction-datom?
-  "Does this Datom refer to a transaction entity?"
-  [db datum]
-  (= :db.part/tx (d/ident db (d/part (.e datum)))))
-
-(defn remove-transaction-datoms
-  "Returns a list of datoms with transaction entity (creation) datoms removed."
-  [db datoms]
-  (remove (partial transaction-datom? db) datoms))
-
-(defn flip-tx-data
-  "Convert tx-data from a transaction result into a list of datom vectors usable with
-   transact."
-  [db tx-data]
-  (->> tx-data
-       (remove-transaction-datoms db)
-       (map Datom->vector)))
-
-(defn rehearse-transaction
-  "Rehearses a transaction, returning a vector of datom addition/retraction vectors,
-   suitable for re-submitting.  This flattens nested tx-data, resolves entity idents to ids, and runs transaction
-   funcitons, capturing their result datoms.  Does not affect the real database!"
-  [db datoms]
-  (let [result (d/with db datoms)]
-    (flip-tx-data db (:tx-data result))))
-
-(defn remove-conflicts
-  "Remove conflicting additions & retractions."
-  [db additions retractions]
-  (let [conflicts (clojure.set/intersection (set (map rest retractions)) (set (map rest additions)) )]
-    (remove (fn [datom] (contains? conflicts (rest datom)))
-            (concat retractions additions))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Storage
-
-(def byte-array-class (class (byte-array 1))) ; is there a clojure literal for the byte-array class?
 
 (defn attribute-for-value
   "Datomic attribute to use for element value, based on its type."
@@ -160,18 +105,21 @@
     nil nil))
 
 (defn encode-value
-  "Encode a value to a list of values/references and datoms to add or retract from the current context."
+  "Encode a value to a list of values/references and datoms to add or
+  retract from the current context."
   [context value]
   (let [[encoded-value datoms] (encode context value)
         value-attribute (:attribute context)]
-    [(:id context) (concat datoms
-                           (if (sequential? encoded-value)
-                             (map (fn [value]
-                                    [(:operation context) (:id context) value-attribute value]) encoded-value)
-                             [[(:operation context) (:id context) value-attribute encoded-value]]))]))
+    [(:id context)
+     (concat datoms
+             (if (sequential? encoded-value)
+               (map (fn [value]
+                      [(:operation context) (:id context) value-attribute value]) encoded-value)
+               [[(:operation context) (:id context) value-attribute encoded-value]]))]))
 
 (defn encode-pair
-  "Encode a key/value or index/value pair as a list of references and datoms to add or retract to the current context."
+  "Encode a key/value or index/value pair as a list of references and
+  datoms to add or retract to the current context."
   [context key-attribute k v]
   (let [id (determine-element-id context key-attribute k)
         value-attribute (attribute-for-value v)
