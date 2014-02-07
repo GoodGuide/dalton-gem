@@ -16,6 +16,7 @@
   (d/create-database (:db-uri system))
   (reset! (:dbc system) (d/connect (:db-uri system)))
   (dzs/load-datomizer-schema @(:dbc system))
+  (dzs/load-datomizer-functions @(:dbc system))
   (dzt/load-datomizer-test-schema @(:dbc system))
   system)
 
