@@ -1,8 +1,8 @@
 (ns datomizer.system
   "Running datomizer system (mostly for development)"
   (:require [datomic.api :as d]
-            [datomizer.datomize :as dz]
-            [datomizer.datomize-test :as dzt]))
+            [datomizer.datomize-test :as dzt]
+            [datomizer.datomize.setup :as dzs]))
 
 (defn system
   "Returns a new instance of the application"
@@ -15,7 +15,7 @@
   [system]
   (d/create-database (:db-uri system))
   (reset! (:dbc system) (d/connect (:db-uri system)))
-  (dz/load-datomizer-schema @(:dbc system))
+  (dzs/load-datomizer-schema @(:dbc system))
   (dzt/load-datomizer-test-schema @(:dbc system))
   system)
 

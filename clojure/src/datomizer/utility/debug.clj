@@ -1,4 +1,4 @@
-(ns datomizer.debug
+(ns datomizer.utility.debug
   "Debugging tools.")
 
 (def ^:dynamic *debug* true)

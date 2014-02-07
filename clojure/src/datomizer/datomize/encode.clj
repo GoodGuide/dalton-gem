@@ -1,10 +1,9 @@
 (ns datomizer.datomize.encode
   "Encode entities by datomizing their data-structures."
   (:require [datomic.api :as d :refer [q]]
-            [datomizer.datomize.datoms :refer :all]))
+            [datomizer.datomize.datoms :refer :all]
+            [datomizer.utility.byte-array :refer [byte-array-class]]))
 
-
-(def byte-array-class (class (byte-array 1))) ; is there a clojure literal for the byte-array class?
 
 (defn ref-type
   "Determine the reference type of an attribute."

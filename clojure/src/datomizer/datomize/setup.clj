@@ -1,17 +1,13 @@
-(ns datomizer.datomize
+(ns datomizer.datomize.setup
   (:require [datomic.api :as d :refer [db]]
-            [datomizer.utility :refer :all]))
+            [datomizer.utility.misc :refer :all]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Schema
 
 (defn load-datomizer-schema
   "Load the schema used by datomizer."
   [dbc]
   (load-datoms-from-edn-resource-file dbc "datomizer-schema.edn"))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Database functions
 
 (def datomize-db-fn
   (d/function {:lang "clojure"

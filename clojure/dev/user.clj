@@ -13,7 +13,12 @@
    [clojure.tools.namespace.repl :refer (refresh refresh-all)]
    [datomic.api :as d :refer [db q]]
    [datomizer.system :as system]
-   [datomizer.debug :refer :all]))
+   [datomizer.utility.debug :refer :all]
+   [datomizer.datomize-test :refer :all]
+   [datomizer.datomize.decode :refer :all]
+   [datomizer.datomize.encode :refer :all]
+   [datomizer.datomize-test :refer :all]
+   ))
 
 (def system nil)
 (def dbc nil)
@@ -62,6 +67,3 @@
 ;; Miscellaneous tools
 
 (defn show-methods [x] (sort (filter #(not (re-find #"^(__|const)" (str %))) (map :name (:members (clojure.reflect/reflect x))))))
-
-(use 'datomizer.datomize-test)
-(use 'datomizer.datomize)

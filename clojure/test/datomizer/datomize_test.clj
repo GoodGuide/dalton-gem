@@ -3,11 +3,13 @@
   (:require [clojure.pprint :refer [pprint]]
             [clojure.test :refer :all]
             [datomic.api :as d :refer [db]]
-            [datomizer.datomize :refer :all]
             [datomizer.datomize.decode :refer :all]
             [datomizer.datomize.encode :refer :all]
+            [datomizer.datomize.setup :refer [load-datomizer-schema]]
+            [datomizer.datomize.validation :refer :all]
+            [datomizer.test-utility.check :refer [marshalable-value]]
+            [datomizer.utility.byte-array :refer :all]
             [simple-check.clojure-test :refer [defspec]]
-            [simple-check.generators :as gen]
             [simple-check.properties :as prop]))
 
 
@@ -76,23 +78,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Round-Trip Testing
-
-(defn seq-if-byte-array [x]
-  (if (instance? byte-array-class x) (seq x) x))
-
-(defn walk-wrapping-byte-arrays
-  "Return a copy of a data structure with all byte-arrays wrapped in seqs (for comparison of contents)."
-  [data]
-  (clojure.walk/postwalk seq-if-byte-array data))
-
-(defn equivalent? [expected actual]
-  "Compare with = (wrapping byte arrays in seqs to check them by equivalence instead of id)."
-  (cond
-   (or (nil? actual) (nil? expected)) (and (nil? expected) (nil? actual))
-   (coll? expected) (apply = (map walk-wrapping-byte-arrays [expected actual]))
-   (instance? byte-array-class expected) (and (instance? byte-array-class actual)
-                                          (= (seq expected) (seq actual)))
-   :else (= expected actual)))
 
 (defn test-attribute
   "Determine the correct reference type for a value."
@@ -235,87 +220,10 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Round-Trip Generative Testing
-
-
-(def gen-long
-  (gen/fmap long gen/nat))
-
-(def ^:private gen-bigint* (gen/such-that identity
-                                          (gen/fmap #(when (pos? (count %))
-                                                       (BigInteger. ^bytes %))
-                                                    gen/bytes)))
-
-(def gen-bigint (gen/fmap bigint gen-bigint*))
-
-(def gen-bigdec (gen/fmap (fn [[unscaled-val scale]]
-                            (BigDecimal. ^BigInteger unscaled-val ^int scale))
-                          (gen/tuple gen-bigint* gen/int)))
-
-(def gen-double
-  (gen/such-that
-   identity
-   (gen/fmap
-    (fn [[^long s1 s2 e]]
-      (let [neg? (neg? s1)
-            s1 (str (Math/abs s1))
-            ; this creates odd strings '1.+e5', but JDK and JS parse OK
-            numstr (str (if neg? "-" "")(first s1) "." (subs s1 1)
-                        (when (not (zero? s2)) s2)
-                        "e" e)
-            num (Double/parseDouble numstr) ]
-        ; TODO use Number.isNaN once we're not using phantomjs for testing :-X
-        (when-not (or (Double/isNaN num)
-                      (Double/isInfinite num))
-          num)))
-    (gen/tuple
-     ; significand, broken into 2 portions, sign on the left
-     (gen/choose -179769313 179769313) (gen/choose 0 48623157)
-     ; exponent range
-     (gen/choose java.lang.Double/MIN_EXPONENT java.lang.Double/MAX_EXPONENT)))))
-
-(def gen-float
-  (gen/such-that
-   identity
-   (gen/fmap
-    (fn [[^long s e]]
-      (let [neg? (neg? s)
-            s (str (Math/abs s))
-            numstr (str (if neg? "-" "") (first s) "." (subs s 1) "e" e)
-            num (Float/parseFloat numstr) ]
-        ; TODO use Number.isNaN once we're not using phantomjs for testing :-X
-        (when-not (or (Float/isNaN num)
-                      (Float/isInfinite num))
-          num)))
-    (gen/tuple
-     ; significand
-     (gen/choose -2097152  2097151)
-     ; exponent range
-     (gen/choose java.lang.Float/MIN_EXPONENT java.lang.Float/MAX_EXPONENT)))))
-
-(def gen-date (gen/fmap #(java.util.Date. %) gen/nat))
-
-(def datomizable-type
-  (gen/one-of [gen/string-ascii gen-long gen-float gen-double gen/boolean gen-date gen/keyword gen-bigdec gen-bigint* gen/bytes]))
-
-(defn container-type-keyword-keys
-  [inner-type]
-  (gen/one-of [(gen/vector inner-type)
-               (gen/map gen/keyword inner-type)]))
-
-(defn sized-container-keyword-keys
-  [inner-type]
-  (fn [size]
-    (if (zero? size)
-      inner-type
-      (gen/one-of [inner-type
-               (container-type-keyword-keys (gen/resize (quot size 2) (gen/sized (sized-container-keyword-keys inner-type))))]))))
-
-(def datomizable-value
-  (gen/one-of [datomizable-type (gen/sized (sized-container-keyword-keys datomizable-type))]))
+;; Generative Testing
 
 (def prop-round-trip
-  (prop/for-all [value datomizable-value]
+  (prop/for-all [value marshalable-value]
                 (let [dbc (fresh-dbc)
                       result (round-trip dbc value)
                       garbage (invalid-elements (db dbc))]
@@ -326,8 +234,8 @@
                        (equivalent? value result)))))
 
 (def prop-update
-  (prop/for-all [initial-value datomizable-value
-                 subsequent-value datomizable-value]
+  (prop/for-all [initial-value marshalable-value
+                 subsequent-value marshalable-value]
                 (let [dbc (fresh-dbc)
                       result (update dbc initial-value subsequent-value)
                       garbage (invalid-elements (db dbc))]
@@ -337,10 +245,6 @@
                   (and (= [] garbage)
                        (equivalent? subsequent-value result)))))
 
-(defspec quickcheck-round-trip
-  30
-  prop-round-trip)
+(defspec quickcheck-round-trip 30 prop-round-trip)
 
-(defspec quickcheck-update
-  30
-  prop-update)
+(defspec quickcheck-update 30 prop-update)
