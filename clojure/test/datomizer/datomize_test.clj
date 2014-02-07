@@ -4,6 +4,7 @@
             [clojure.test :refer :all]
             [datomic.api :as d :refer [db]]
             [datomizer.datomize :refer :all]
+            [datomizer.datomize.decode :refer :all]
             [datomizer.datomize.encode :refer :all]
             [simple-check.clojure-test :refer [defspec]]
             [simple-check.generators :as gen]
