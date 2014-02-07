@@ -34,10 +34,3 @@
   (d/delete-database (:db-uri system))
   (start system)
   system)
-
-#_(defn -main
-  [& m]
-  (let [s (system :db-uri "datomic:mem:://datomizer-development")]
-    (start s)
-    (.addShutdownHook (Runtime/getRuntime) (Thread. #((stop s)
-                                                      (d/shutdown false))))))
