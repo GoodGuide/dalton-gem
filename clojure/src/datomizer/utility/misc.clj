@@ -8,3 +8,8 @@
                              {:readers *data-readers*}
                              r)]
       (d/transact dbc [datoms]))))
+
+(defn first-matching
+  "Return the first element of a collection matching a regular expression."
+  [coll regexp]
+  (first (filter #(re-matches regexp (str %)) coll)))
