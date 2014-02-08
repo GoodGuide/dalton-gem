@@ -7,12 +7,12 @@
 
 (defn ref-type
   "Determine the reference type of an attribute."
-  [db key]
-  (let [attribute (d/entity db (keyword key))]
+  [db attribute]
+  (let [attribute (d/entity db (keyword attribute))]
     (:dmzr.ref/type attribute)))
 
 (defn attribute-for-value
-  "Datomic attribute to use for element value, based on its type."
+  "Datomizer attribute to use for an element value."
   [value]
   (if (nil? value)
     :dmzr.element.value/nil
@@ -31,7 +31,8 @@
       byte-array-class :dmzr.element.value/bytes
       ;; :dmzr.element.value/fn
       ;; :dmzr.element.value/ref
-      (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (.toString (class value))))))))
+      (throw (java.lang.IllegalArgumentException.
+              (str "Marshalling not supported for type " (class value)))))))
 
 
 (defrecord Context [operation   ; What operation we're currently performing: :db/add or :db/retract
@@ -41,14 +42,15 @@
                     attribute]) ; Attribute on the entity which will point to this value.
 
 (defmulti encode
-  "Encode a value as datoms.
-  Returns a pair of values: the to assign to the parent attribute
-  and a vec of datoms to transact."
+  "Encode a value as datoms.  Returns a pair of values: the to assign to
+  the parent attribute and a vec of datoms to transact."
   (fn [context value-to-encode]
     (ref-type (:db context) (:attribute context))))
 
 
-(defn determine-element-id [context key-attribute key]
+(defn determine-element-id
+  "Entity id of existing element, if any. Otherwise, a tempid."
+  [context key-attribute key]
   (or (ffirst (q '[:find ?e
                    :in $ ?attribute ?parent-id ?key-attribute ?key
                    :where
@@ -61,7 +63,9 @@
                  key))
       (d/tempid (:partition context))))
 
-(defn determine-empty-marker-id [context]
+(defn determine-empty-marker-id
+  "Entity id of existing element, if any. Otherwise, a tempid."
+  [context]
   (or (ffirst (q '[:find ?e
                    :in $ ?attribute ?parent-id
                    :where
@@ -73,6 +77,7 @@
       (d/tempid (:partition context))))
 
 (defn determine-variant-id [context]
+  "Entity id of existing variant, if any. Otherwise, a tempid."
   (or (ffirst (q '[:find ?e
                     :in $ ?attribute ?parent-id
                     :where
@@ -83,7 +88,10 @@
       (d/tempid (:partition context))))
 
 
-(defn determine-key-attribute [context]
+(defn determine-key-attribute
+  "Proper key attribute for elements added to the current value (if it's
+  a collection)."
+  [context]
   (case (ref-type (:db context) (:attribute context))
     :dmzr.ref.type/map :dmzr.element.map/key
     :dmzr.ref.type/vector :dmzr.element.vector/index
@@ -91,7 +99,7 @@
     nil nil))
 
 (defn encode-value
-  "Encode a value to a list of values/references and datoms to add or
+  "Encode a value as alist of values/references and datoms to add or
   retract from the current context."
   [context value]
   (let [[encoded-value datoms] (encode context value)
@@ -104,7 +112,7 @@
                [[(:operation context) (:id context) value-attribute encoded-value]]))]))
 
 (defn encode-pair
-  "Encode a key/value or index/value pair as a list of references and
+  "Encode a key/value or index/value pairs as a list of references and
   datoms to add or retract to the current context."
   [context key-attribute k v]
   (let [id (determine-element-id context key-attribute k)
@@ -127,7 +135,8 @@
   (let [id (determine-empty-marker-id context)]
     [id [[(:operation context) id :dmzr.ref/empty true]]]))
 
-(defmethod encode :dmzr.ref.type/map [context value]
+(defmethod encode :dmzr.ref.type/map
+  [context value]
   (if (empty? value)
     (encode-empty context)
     (condense-elements (map (fn [[k, v]] (encode-pair context :dmzr.element.map/key k v))
