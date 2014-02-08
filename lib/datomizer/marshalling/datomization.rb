@@ -108,7 +108,7 @@ module Datomizer
 
         [[:db/add #db/id[:db.part/user] :db/ident :ref/vector]
          [:db/add #db/id[:db.part/user] :db/ident :ref/map]
-         [:db/add #db/id[:db.part/user] :db/ident :ref/value]
+         [:db/add #db/id[:db.part/user] :db/ident :ref/variant]
          [:db/add #db/id[:db.part/user] :db/ident :ref.map/empty]
          [:db/add #db/id[:db.part/user] :db/ident :ref.vector/empty]
 

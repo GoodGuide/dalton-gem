@@ -38,7 +38,7 @@
         value (value-attribute element)]
     [key (decode value-attribute value)]))
 
-(defn decode-value
+(defn decode-variant
   "Decode a datomized variant value."
   [element]
   (let [value-attribute (element-value-attribute element)
@@ -87,7 +87,7 @@
     (case (ref-type (.db entity) key)
       (:ref.type/map) (decode-map elements)
       (:ref.type/vector) (decode-vector elements)
-      (:ref.type/value) (decode-value elements)
+      (:ref.type/variant) (decode-variant elements)
       (when-not (= :element.value/nil key) elements))))
 
 (defn undatomize

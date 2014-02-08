@@ -24,7 +24,7 @@
         (and (not (contains? (keys element) :element.map/key))
              (contains? attributes :element.vector/index)
              (some #(re-matches #"^:element\.value/.*" (str %)) attributes)))
-    :ref.type/value (and (not (contains? attributes :element.map/key))
+    :ref.type/variant (and (not (contains? attributes :element.map/key))
                          (not (contains? attributes :element.vector/index))
                          (some #(re-matches #"^:element\.value/.*" (str %)) attributes))))
 
@@ -45,7 +45,7 @@
           (case ownership-type
             :ref.type/map (valid-map? db element)
             :ref.type/vector (valid-vector? db element)
-            :ref.type/value (valid-value? db element)))))
+            :ref.type/variant (valid-value? db element)))))
 
 (defn invalid-elements [db]
   (remove (partial valid? db) (retrieve-all-elements db)))

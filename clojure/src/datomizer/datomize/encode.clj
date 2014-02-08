@@ -88,7 +88,7 @@
   (case (ref-type (:db context) (:attribute context))
     :ref.type/map :element.map/key
     :ref.type/vector :element.vector/index
-    :ref.type/value nil
+    :ref.type/variant nil
     nil nil))
 
 (defn encode-value
@@ -140,7 +140,7 @@
     (condense-elements (map (fn [[i, v]] (encode-pair context :element.vector/index i v))
                             (zipmap (range) value)))))
 
-(defmethod encode :ref.type/value [context value]
+(defmethod encode :ref.type/variant [context value]
   (let [id (determine-variant-id context)]
     (encode-value (assoc context :id id :attribute (attribute-for-value value)) value)))
 

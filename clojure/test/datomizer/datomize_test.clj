@@ -42,7 +42,7 @@
     :db/unique :db.unique/value
     :db/doc "A reference attribute for testing variant marshalling"
     :db/isComponent true
-    :ref/type :ref.type/value
+    :ref/type :ref.type/variant
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/names
