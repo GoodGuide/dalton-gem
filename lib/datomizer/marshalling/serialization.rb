@@ -25,9 +25,9 @@ module Datomizer
       end
 
       REF_SCHEMA = <<-EDN_ERB
-        [[:db/add #db/id[:db.part/user] :db/ident :ref/edn]
+        [[:db/add #db/id[:db.part/user] :db/ident :dmzr.ref/edn]
          {:db/id #db/id[:db.part/db]
-          :db/ident :ref/type
+          :db/ident :dmzr.ref/type
           :db/valueType :db.type/keyword
           :db/cardinality :db.cardinality/one
           :db/isComponent true

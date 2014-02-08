@@ -9,30 +9,29 @@
   "Determine the reference type of an attribute."
   [db key]
   (let [attribute (d/entity db (keyword key))]
-    (:ref/type attribute)))
+    (:dmzr.ref/type attribute)))
 
 (defn attribute-for-value
   "Datomic attribute to use for element value, based on its type."
   [value]
   (if (nil? value)
-    :element.value/nil
+    :dmzr.element.value/nil
     (condp instance? value
-      java.lang.String :element.value/string
-      java.lang.Long :element.value/long
-      java.lang.Float :element.value/float
-      java.lang.Double :element.value/double
-      java.lang.Boolean :element.value/boolean
-      java.util.Date :element.value/instant
-      clojure.lang.Keyword :element.value/keyword
-      java.util.List :element.value/vector
-      java.util.Map :element.value/map
-      java.math.BigDecimal :element.value/bigdec
-      java.math.BigInteger :element.value/bigint
-      byte-array-class :element.value/bytes
-      ;; :element.value/fn
-      ;; :element.value/ref
-      (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (.toString (class value)))))
-      )))
+      java.lang.String :dmzr.element.value/string
+      java.lang.Long :dmzr.element.value/long
+      java.lang.Float :dmzr.element.value/float
+      java.lang.Double :dmzr.element.value/double
+      java.lang.Boolean :dmzr.element.value/boolean
+      java.util.Date :dmzr.element.value/instant
+      clojure.lang.Keyword :dmzr.element.value/keyword
+      java.util.List :dmzr.element.value/vector
+      java.util.Map :dmzr.element.value/map
+      java.math.BigDecimal :dmzr.element.value/bigdec
+      java.math.BigInteger :dmzr.element.value/bigint
+      byte-array-class :dmzr.element.value/bytes
+      ;; :dmzr.element.value/fn
+      ;; :dmzr.element.value/ref
+      (throw (java.lang.IllegalArgumentException. (str "Marshalling not supported for type " (.toString (class value))))))))
 
 
 (defrecord Context [operation   ; What operation we're currently performing: :db/add or :db/retract
@@ -67,7 +66,7 @@
                    :in $ ?attribute ?parent-id
                    :where
                    [?parent-id ?attribute ?e]
-                   [?e :ref/empty true]]
+                   [?e :dmzr.ref/empty true]]
                  (:db context)
                  (:attribute context)
                  (:id context)))
@@ -86,9 +85,9 @@
 
 (defn determine-key-attribute [context]
   (case (ref-type (:db context) (:attribute context))
-    :ref.type/map :element.map/key
-    :ref.type/vector :element.vector/index
-    :ref.type/variant nil
+    :dmzr.ref.type/map :dmzr.element.map/key
+    :dmzr.ref.type/vector :dmzr.element.vector/index
+    :dmzr.ref.type/variant nil
     nil nil))
 
 (defn encode-value
@@ -126,21 +125,21 @@
 
 (defn encode-empty [context]
   (let [id (determine-empty-marker-id context)]
-    [id [[(:operation context) id :ref/empty true]]]))
+    [id [[(:operation context) id :dmzr.ref/empty true]]]))
 
-(defmethod encode :ref.type/map [context value]
+(defmethod encode :dmzr.ref.type/map [context value]
   (if (empty? value)
     (encode-empty context)
-    (condense-elements (map (fn [[k, v]] (encode-pair context :element.map/key k v))
+    (condense-elements (map (fn [[k, v]] (encode-pair context :dmzr.element.map/key k v))
                             value))))
 
-(defmethod encode :ref.type/vector [context value]
+(defmethod encode :dmzr.ref.type/vector [context value]
   (if (empty? value)
     (encode-empty context)
-    (condense-elements (map (fn [[i, v]] (encode-pair context :element.vector/index i v))
+    (condense-elements (map (fn [[i, v]] (encode-pair context :dmzr.element.vector/index i v))
                             (zipmap (range) value)))))
 
-(defmethod encode :ref.type/variant [context value]
+(defmethod encode :dmzr.ref.type/variant [context value]
   (let [id (determine-variant-id context)]
     (encode-value (assoc context :id id :attribute (attribute-for-value value)) value)))
 

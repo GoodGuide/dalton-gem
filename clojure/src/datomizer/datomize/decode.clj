@@ -9,14 +9,14 @@
   [element]
   (-> element
       keys
-      (first-matching #"^:element\.(map/key|vector/index)")))
+      (first-matching #"^:dmzr.element\.(map/key|vector/index)")))
 
 (defn element-value-attribute
   "Return an element's value attribute."
   [element]
   (-> element
        keys
-       (first-matching #"^:element\.value/.*")))
+       (first-matching #"^:dmzr.element\.value/.*")))
 
 (defn element-key
   "Return an element's key or index."
@@ -43,14 +43,14 @@
   [element]
   (let [value-attribute (element-value-attribute element)
         value (value-attribute element)]
-    (if (= :element.value/nil value-attribute)
+    (if (= :dmzr.element.value/nil value-attribute)
       nil
       value)))
 
 (defn empty-datomized-container?
   "Does this value represent and empty container?"
   [value]
-  (and (coll? value) (some :ref/empty value)))
+  (and (coll? value) (some :dmzr.ref/empty value)))
 
 (defn decode-map
   "Decode a datomized map."
@@ -75,9 +75,9 @@
   "Decode a value."
   [key value]
   (case key
-    (:element.value/map) (decode-map value)
-    (:element.value/vector) (decode-vector value)
-    (:element.value/nil) nil
+    (:dmzr.element.value/map) (decode-map value)
+    (:dmzr.element.value/vector) (decode-vector value)
+    (:dmzr.element.value/nil) nil
     value))
 
 (defn undatomize-attribute
@@ -85,10 +85,10 @@
   [entity key]
   (let [elements (get entity (str key))]
     (case (ref-type (.db entity) key)
-      (:ref.type/map) (decode-map elements)
-      (:ref.type/vector) (decode-vector elements)
-      (:ref.type/variant) (decode-variant elements)
-      (when-not (= :element.value/nil key) elements))))
+      (:dmzr.ref.type/map) (decode-map elements)
+      (:dmzr.ref.type/vector) (decode-vector elements)
+      (:dmzr.ref.type/variant) (decode-variant elements)
+      (when-not (= :dmzr.element.value/nil key) elements))))
 
 (defn undatomize
   "Decode a datomized entity."

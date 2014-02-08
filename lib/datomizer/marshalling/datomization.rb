@@ -106,14 +106,14 @@ module Datomizer
 
       REF_SCHEMA = <<-EDN_ERB
 
-        [[:db/add #db/id[:db.part/user] :db/ident :ref/vector]
-         [:db/add #db/id[:db.part/user] :db/ident :ref/map]
-         [:db/add #db/id[:db.part/user] :db/ident :ref/variant]
-         [:db/add #db/id[:db.part/user] :db/ident :ref.map/empty]
-         [:db/add #db/id[:db.part/user] :db/ident :ref.vector/empty]
+        [[:db/add #db/id[:db.part/user] :db/ident :dmzr.ref/vector]
+         [:db/add #db/id[:db.part/user] :db/ident :dmzr.ref/map]
+         [:db/add #db/id[:db.part/user] :db/ident :dmzr.ref/variant]
+         [:db/add #db/id[:db.part/user] :db/ident :dmzr.ref.map/empty]
+         [:db/add #db/id[:db.part/user] :db/ident :dmzr.ref.vector/empty]
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :ref/type
+          :db/ident :dmzr.ref/type
           :db/valueType :db.type/keyword
           :db/cardinality :db.cardinality/one
           :db/isComponent true
@@ -121,14 +121,14 @@ module Datomizer
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.map/key
+          :db/ident :dmzr.element.map/key
           :db/valueType :db.type/keyword
           :db/cardinality :db.cardinality/one
           :db/doc "Map entry key."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.vector/index
+          :db/ident :dmzr.element.vector/index
           :db/valueType :db.type/long
           :db/cardinality :db.cardinality/one
           :db/doc "Vector index"
@@ -138,105 +138,105 @@ module Datomizer
 
       ELEMENT_SCHEMA = <<-EDN
         [{:db/id #db/id[:db.part/db]
-          :db/ident :element.value/bigdec
+          :db/ident :dmzr.element.value/bigdec
           :db/valueType :db.type/bigdec
           :db/cardinality :db.cardinality/one
           :db/doc "BigDecimal value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/bigint
+          :db/ident :dmzr.element.value/bigint
           :db/valueType :db.type/bigint
           :db/cardinality :db.cardinality/one
           :db/doc "BigInteger value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/boolean
+          :db/ident :dmzr.element.value/boolean
           :db/valueType :db.type/boolean
           :db/cardinality :db.cardinality/one
           :db/doc "Boolean value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/bytes
+          :db/ident :dmzr.element.value/bytes
           :db/valueType :db.type/bytes
           :db/cardinality :db.cardinality/one
           :db/doc "Bytes value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/double
+          :db/ident :dmzr.element.value/double
           :db/valueType :db.type/double
           :db/cardinality :db.cardinality/one
           :db/doc "Double value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/float
+          :db/ident :dmzr.element.value/float
           :db/valueType :db.type/float
           :db/cardinality :db.cardinality/one
           :db/doc "Float value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/fn
+          :db/ident :dmzr.element.value/fn
           :db/valueType :db.type/fn
           :db/cardinality :db.cardinality/one
           :db/doc "Function value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/instant
+          :db/ident :dmzr.element.value/instant
           :db/valueType :db.type/instant
           :db/cardinality :db.cardinality/one
           :db/doc "Instant value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/keyword
+          :db/ident :dmzr.element.value/keyword
           :db/valueType :db.type/keyword
           :db/cardinality :db.cardinality/one
           :db/doc "Keyword value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/long
+          :db/ident :dmzr.element.value/long
           :db/valueType :db.type/long
           :db/cardinality :db.cardinality/one
           :db/doc "Long value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/ref
+          :db/ident :dmzr.element.value/ref
           :db/valueType :db.type/ref
           :db/cardinality :db.cardinality/one
           :db/doc "Ref value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/string
+          :db/ident :dmzr.element.value/string
           :db/valueType :db.type/string
           :db/cardinality :db.cardinality/one
           :db/doc "String value of vector, map, or value element."
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/map
+          :db/ident :dmzr.element.value/map
           :db/valueType :db.type/ref
           :db/cardinality :db.cardinality/many
           :db/doc "Map value of vector, map, or value element."
           :db/isComponent true
-          :ref/type :ref.type/map
+          :dmzr.ref/type :dmzr.ref.type/map
           :db.install/_attribute :db.part/db}
 
          {:db/id #db/id[:db.part/db]
-          :db/ident :element.value/vector
+          :db/ident :dmzr.element.value/vector
           :db/valueType :db.type/ref
           :db/cardinality :db.cardinality/many
           :db/doc "Vector value of vector, map, or value element."
           :db/isComponent true
-          :ref/type :ref.type/vector
+          :dmzr.ref/type :dmzr.ref.type/vector
           :db.install/_attribute :db.part/db}
         ]
       EDN

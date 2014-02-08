@@ -24,7 +24,7 @@
     :db/unique :db.unique/value
     :db/doc "A reference attribute for testing map marshalling"
     :db/isComponent true
-    :ref/type :ref.type/map
+    :dmzr.ref/type :dmzr.ref.type/map
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/vector
@@ -33,7 +33,7 @@
     :db/unique :db.unique/value
     :db/doc "A reference attribute for testing vector marshalling"
     :db/isComponent true
-    :ref/type :ref.type/vector
+    :dmzr.ref/type :dmzr.ref.type/vector
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/value
@@ -42,7 +42,7 @@
     :db/unique :db.unique/value
     :db/doc "A reference attribute for testing variant marshalling"
     :db/isComponent true
-    :ref/type :ref.type/variant
+    :dmzr.ref/type :dmzr.ref.type/variant
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/names
@@ -169,33 +169,33 @@
 
 (deftest test-attribute-for-value
   (testing "with a String"
-    (is (= :element.value/string (attribute-for-value "I'm a string!"))))
+    (is (= :dmzr.element.value/string (attribute-for-value "I'm a string!"))))
   (testing "with a vector"
-    (is (= :element.value/vector (attribute-for-value [:a :vector]))))
+    (is (= :dmzr.element.value/vector (attribute-for-value [:a :vector]))))
   (testing "with an java ArrayList"
-    (is (= :element.value/vector (attribute-for-value (java.util.ArrayList. [:an "arraylist"])))))
+    (is (= :dmzr.element.value/vector (attribute-for-value (java.util.ArrayList. [:an "arraylist"])))))
   (testing "with a clojure map"
-    (is (= :element.value/map (attribute-for-value {:a "map"}))))
+    (is (= :dmzr.element.value/map (attribute-for-value {:a "map"}))))
   (testing "with a java Map"
-    (is (= :element.value/map (attribute-for-value (java.util.HashMap. {:a "hashmap"})))))
+    (is (= :dmzr.element.value/map (attribute-for-value (java.util.HashMap. {:a "hashmap"})))))
   (testing "with a Long"
-    (is (= :element.value/long (attribute-for-value 23))))
+    (is (= :dmzr.element.value/long (attribute-for-value 23))))
   (testing "with a Float"
-    (is (= :element.value/float (attribute-for-value (float 23.1)))))
+    (is (= :dmzr.element.value/float (attribute-for-value (float 23.1)))))
   (testing "with a Double"
-    (is (= :element.value/double (attribute-for-value 23.1))))
+    (is (= :dmzr.element.value/double (attribute-for-value 23.1))))
   (testing "with a Boolean"
-    (is (= :element.value/boolean (attribute-for-value true))))
+    (is (= :dmzr.element.value/boolean (attribute-for-value true))))
   (testing "with a Date"
-    (is (= :element.value/instant (attribute-for-value (java.util.Date.)))))
+    (is (= :dmzr.element.value/instant (attribute-for-value (java.util.Date.)))))
   (testing "with a keyword"
-    (is (= :element.value/keyword (attribute-for-value :keyword))))
+    (is (= :dmzr.element.value/keyword (attribute-for-value :keyword))))
   (testing "with a BigDecimal"
-    (is (= :element.value/bigdec (attribute-for-value (java.math.BigDecimal. 23)))))
+    (is (= :dmzr.element.value/bigdec (attribute-for-value (java.math.BigDecimal. 23)))))
   (testing "with a BigInteger"
-    (is (= :element.value/bigint (attribute-for-value (java.math.BigInteger. "23")))))
+    (is (= :dmzr.element.value/bigint (attribute-for-value (java.math.BigInteger. "23")))))
   (testing "with a byte array"
-    (is (= :element.value/bytes (attribute-for-value (byte-array 1)))))
+    (is (= :dmzr.element.value/bytes (attribute-for-value (byte-array 1)))))
   (testing "with something unsupported"
     (is (thrown? java.lang.IllegalArgumentException (attribute-for-value (Object.))))))
 
@@ -204,19 +204,19 @@
     (let [dbc (fresh-dbc)
           tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
                                        :test/map {:db/id (d/tempid :db.part/user)
-                                                  :ref/empty true}}])
+                                                  :dmzr.ref/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
-      (is (= :ref.type/map (ref-type (db dbc) :test/map)))))
+      (is (= :dmzr.ref.type/map (ref-type (db dbc) :test/map)))))
 
   (testing "with an attribute representing a vector"
     (let [dbc (fresh-dbc)
           tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
                                          :test/vector {:db/id (d/tempid :db.part/user)
-                                                  :ref/empty true}}])
+                                                  :dmzr.ref/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
-      (is (= :ref.type/vector (ref-type (db dbc) :test/vector))))))
+      (is (= :dmzr.ref.type/vector (ref-type (db dbc) :test/vector))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
