@@ -1,5 +1,9 @@
+require_relative 'utility'
+
 module Datomizer
   module Datomization
+
+    Utility.require_clojure('datomizer.datomize.decode')
 
     def datomizer_schema
       Utility.read_edn(File.read(File.expand_path("../../../clojure/resources/datomizer-schema.edn", __FILE__)))
@@ -21,8 +25,7 @@ module Datomizer
 
     def undatomize(id)
       e = entity(id)
-      Utility.require_clojure('datomizer.datomize.decode')
-      clojure_data = Utility.run_clojure("datomizer.datomize.decode/undatomize", e.datomic_entity)
+      clojure_data = Utility.run_clojure_function("datomizer.datomize.decode/undatomize", e.datomic_entity)
       Translation.from_clj(clojure_data)
     end
 

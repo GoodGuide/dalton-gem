@@ -7,7 +7,7 @@ module Datomizer
 
     module_function
 
-    def run_clojure(namespaced_function, *arguments)
+    def run_clojure_function(namespaced_function, *arguments)
       namespace, function = namespaced_function.to_s.split('/', 2)
       RT.var(namespace, function).fn.invoke(*arguments)
     end
@@ -22,16 +22,16 @@ module Datomizer
       require_function.invoke(Java::ClojureLang::Symbol.intern(namespace))
     end
 
-    def read_edn(edn)
-      require_clojure('datomic.function')
-      require_clojure('datomic.db')
+    require_clojure('datomic.function')
+    require_clojure('datomic.db')
 
+    def read_edn(edn)
       readers = PersistentArrayMap.create({Keyword.intern('readers') => PersistentArrayMap.create({
           Java::ClojureLang::Symbol.intern('db/fn') => RT.var('datomic.function', 'construct'),
           Java::ClojureLang::Symbol.intern('db/id') => RT.var('datomic.db', 'id-literal')
       })})
 
-      run_clojure("clojure.edn/read-string", readers, edn)
+      run_clojure_function("clojure.edn/read-string", readers, edn)
     end
 
     def rubify_edn(edn)
@@ -39,11 +39,11 @@ module Datomizer
     end
 
     def clojure_equal?(one, other)
-      run_clojure('clojure.core/=', one, other)
+      run_clojure_function('clojure.core/=', one, other)
     end
 
     def to_edn(clojure_data)
-      run_clojure('clojure.core/pr-str', clojure_data)
+      run_clojure_function('clojure.core/pr-str', clojure_data)
     end
 
   end
