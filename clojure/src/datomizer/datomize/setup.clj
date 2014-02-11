@@ -15,5 +15,5 @@
 
 (comment
   ;; Use like this:
-  @(d/transact dbc [[:dmzr.datomize {:db/id (d/tempid :db.part/user) :test/map {:a 1}}]])
+  @(d/transact dbc [[:dmzr/datomize {:db/id (d/tempid :db.part/user) :test/map {:a 1}}]])
   (undatomize (d/entity (db dbc) 17592186046111)))

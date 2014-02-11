@@ -1,15 +1,9 @@
 (ns datomizer.datomize.encode
   "Encode entities by datomizing their data-structures."
   (:require [datomic.api :as d :refer [q]]
-            [datomizer.datomize.datoms :refer :all]
-            [datomizer.utility.byte-array :refer [byte-array-class]]))
-
-
-(defn ref-type
-  "Determine the reference type of an attribute."
-  [db attribute]
-  (let [attribute (d/entity db (keyword attribute))]
-    (:dmzr.ref/type attribute)))
+            [datomizer.datoms :refer :all]
+            [datomizer.utility.byte-array :refer [byte-array-class]]
+            [datomizer.utility.misc :refer [ref-type]]))
 
 (defn attribute-for-value
   "Datomizer attribute to use for an element value."

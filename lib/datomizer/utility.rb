@@ -8,8 +8,13 @@ module Datomizer
     module_function
 
     def run_clojure(namespaced_function, *arguments)
-      namespace, function = namespaced_function.split('/', 2)
+      namespace, function = namespaced_function.to_s.split('/', 2)
       RT.var(namespace, function).fn.invoke(*arguments)
+    end
+
+    def run_database_function(db, function_ident, *arguments)
+      function_entity = db.entity(Translation.from_ruby(function_ident))
+      function_entity.fn.invoke(*arguments)
     end
 
     def require_clojure(namespace)

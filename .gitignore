@@ -14,3 +14,4 @@ pkg/*
 /clojure/target/
 clojure/.lein-failures
 clojure/.lein-repl-history
+clojure/pom.xml

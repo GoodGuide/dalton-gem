@@ -1,8 +1,7 @@
 (ns datomizer.datomize.decode
   "Decode datomized entities."
-  (:require [datomizer.datomize.encode :refer [ref-type]]
-            [datomizer.utility.debug :refer :all]
-            [datomizer.utility.misc :refer [first-matching]]))
+  (:require [datomizer.utility.debug :refer :all]
+            [datomizer.utility.misc :refer [ref-type first-matching]]))
 
 (defn element-key-attribute
   "Return an element's key attribute"

@@ -65,5 +65,11 @@ module Datomizer
       end
     end
 
+    DB_FUNCTION_KEY = ::Keyword.intern('db/fn')
+
+    def fn
+      @datomic_entity.get(DB_FUNCTION_KEY)
+    end
+
   end
 end

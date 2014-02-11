@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Datomizer::Marshalling::Datomization do
 
-  let(:uri) { 'datomic:mem://spec' }
+  let(:uri) { 'datomic:dev://localhost:4334/spec' }
   let(:d) { Datomizer::Database.new(uri) }
 
   before do
@@ -18,7 +18,8 @@ describe Datomizer::Marshalling::Datomization do
 
   describe 'data structure handling' do
     before do
-      Datomizer::Marshalling::Datomization.install_schema(d)
+      Datomizer::Marshalling.install_schema(d)
+
       d.transact([
                    {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
                     :'db/ident' => :'test/map',
@@ -26,7 +27,7 @@ describe Datomizer::Marshalling::Datomization do
                     :'db/cardinality' => :'db.cardinality/many',
                     :'db/doc' => "A reference attribute for testing datomization",
                     :'db/isComponent' => true,
-                    :'ref/type' => :'ref/map',
+                    :'dmzr.ref/type' => :'dmzr.ref.type/map',
                     :'db.install/_attribute' => :'db.part/db',
                    },
                    {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
@@ -35,7 +36,7 @@ describe Datomizer::Marshalling::Datomization do
                     :'db/cardinality' => :'db.cardinality/many',
                     :'db/doc' => "A reference attribute for testing datomization",
                     :'db/isComponent' => true,
-                    :'ref/type' => :'ref/vector',
+                    :'dmzr.ref/type' => :'dmzr.ref.type/vector',
                     :'db.install/_attribute' => :'db.part/db',
                    },
                  ])
@@ -43,21 +44,12 @@ describe Datomizer::Marshalling::Datomization do
 
     shared_examples_for "a round-trip to/from the database" do |attribute|
       it "should store and retrieve the value" do
-        collection_datoms = Datomizer::Marshalling::Datomization.collection_to_datoms(value)
-
-        d.transact([{:'db/id' => Datomizer::Database.tempid,
-                     attribute => collection_datoms
-                    }])
-
-        entities = d.retrieve([:find, :'?e', :where, [:'?e', attribute]])
-        expect(entities.size).to eq(1)
-        entity = entities.first
-
-        data = Datomizer::Marshalling::Datomization.entity_to_data(entity)
-
-        expect(data[attribute]).to eq(value)
+        id = Datomizer::Database.tempid
+        original_data = {:'db/id' => id, attribute => value}
+        real_id = d.datomize(original_data)
+        round_tripped_data = d.undatomize(real_id)
+        expect(round_tripped_data[attribute]).to eq(value)
       end
-
     end
 
     context "with an empty map" do
@@ -85,19 +77,19 @@ describe Datomizer::Marshalling::Datomization do
     end
 
     context "with an empty array" do
-      let(:value) {[]}
+      let(:value) { [] }
 
       it_should_behave_like "a round-trip to/from the database", :'test/vector'
     end
 
     context "with array values" do
-      let(:value) {['a', 'b', 'c']}
+      let(:value) { ['a', 'b', 'c'] }
 
       it_should_behave_like "a round-trip to/from the database", :'test/vector'
     end
 
     context "with nested data structure values" do
-      let(:value) {[0, 1, 'a', 'b', 'c', ['x', 'y', 'z']]}
+      let(:value) { [0, 1, 'a', 'b', 'c', ['x', 'y', 'z']] }
 
       it_should_behave_like "a round-trip to/from the database", :'test/vector'
     end

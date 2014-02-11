@@ -1,3 +1,5 @@
+java_import "datomic.Peer"
+
 module Datomizer
   class TransactionResult
     def initialize(result_map)
@@ -16,8 +18,16 @@ module Datomizer
       @result_map.get(Java::Datomic::Connection.TX_DATA).to_a
     end
 
+    def raw_tempids
+      @result_map.get(Java::Datomic::Connection.TEMPIDS)
+    end
+
     def tempids
-      Translation.from_clj(@result_map.get(Java::Datomic::Connection.TEMPIDS))
+      Translation.from_clj(raw_tempids)
+    end
+
+    def resolve_tempid(tempid)
+      Peer.resolve_tempid(db_after, raw_tempids, tempid)
     end
   end
 end

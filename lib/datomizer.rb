@@ -5,6 +5,9 @@ require 'rubygems'
 require 'lock_jar'
 LockJar.load
 
+# puts "classpath is:"
+# JRuby.runtime.jruby_class_loader.uRLs.each {|x| puts x.toString}
+
 require 'zweikopf'
 
 module Datomizer

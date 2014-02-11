@@ -5,10 +5,14 @@
             [datomic.api :as d :refer [db]]
             [datomizer.datomize.decode :refer :all]
             [datomizer.datomize.encode :refer :all]
-            [datomizer.datomize.setup :refer [load-datomizer-schema]]
+            [datomizer.datomize.setup :refer :all]
             [datomizer.datomize.validation :refer :all]
+            [datomizer.edenize.encode :refer :all]
+            [datomizer.edenize.decode :refer :all]
             [datomizer.test-utility.check :refer [marshalable-value]]
             [datomizer.utility.byte-array :refer :all]
+            [datomizer.utility.debug :refer [dbg]]
+            [datomizer.utility.misc :refer [ref-type]]
             [simple-check.clojure-test :refer [defspec]]
             [simple-check.properties :as prop]))
 
@@ -45,6 +49,13 @@
     :dmzr.ref/type :dmzr.ref.type/variant
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
+    :db/ident :test/edn
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/doc "An EDN string field for edenization testing."
+    :dmzr.ref/type :dmzr.ref.type/edn
+    :db.install/_attribute :db.part/db}
+   {:db/id (d/tempid :db.part/db)
     :db/ident :test/names
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/many
@@ -72,6 +83,7 @@
     (d/create-database test-database-uri)
     (let [dbc (d/connect test-database-uri)]
       (load-datomizer-schema dbc)
+      (load-datomizer-functions dbc)
       (load-datomizer-test-schema dbc)
       (reset! test-database dbc)
       dbc)))
@@ -80,67 +92,90 @@
 ;; Round-Trip Testing
 
 (defn test-attribute
-  "Determine the correct reference type for a value."
+  "Determine the correct test attribute for datomizing value."
   [value]
   (cond (map? value) :test/map
         (vector? value) :test/vector
         :else :test/value))
 
-(defn store-test-entity [dbc value & {:keys [id]}]
+(defn datomize-test-entity [dbc value & {:keys [id]}]
   (let [id (or id (d/tempid :db.part/user))
-        entity-map {:db/id id
+        entity-data {:db/id id
                     :db/doc "Test entity."
                     (test-attribute value) value}
-        entity-datoms (datomize (db dbc) entity-map)
-        tx-result @(d/transact dbc entity-datoms)
+        tx-result @(d/transact dbc [[:dmzr/datomize entity-data]])
         entity-id (if (number? id) id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) id))
         entity (d/entity (:db-after tx-result) entity-id)]
     (d/touch entity)))
 
-(defn round-trip
-  "Store, then retrieve a value to/from Datomic."
+(defn edenize-test-entity [dbc value & {:keys [id]}]
+  (let [id (or id (d/tempid :db.part/user))
+        entity-data {:db/id id
+                    :db/doc "Test entity."
+                    :test/edn value}
+        tx-result @(d/transact dbc (edenize (db dbc) entity-data))
+        entity-id (if (number? id) id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) id))
+        entity (d/entity (:db-after tx-result) entity-id)]
+    (d/touch entity)))
+
+(defn round-trip-via-datomize
+  "Store, then retrieve a value to/from Datomic using edenization."
   [dbc value]
-  (let [entity (store-test-entity dbc value)
+  (let [entity (datomize-test-entity dbc value)
         data (undatomize entity)]
     ((test-attribute value) data)))
 
-(defn round-trip-test
+(defn round-trip-via-edenize
+  "Store, then retrieve a value to/from Datomic using datomization."
+  [dbc value]
+  (let [entity (edenize-test-entity dbc value)
+        data (unedenize entity)]
+    (:test/edn data)))
+
+(defn round-trip-edenize-test
   "Test that a value is stored and retrieved from Datomic."
   [value]
-  (is (equivalent? value (round-trip (fresh-dbc) value))))
+  (is (equivalent? value (round-trip-via-edenize (fresh-dbc) value))))
+
+(defn round-trip-datomize-test
+  "Test that a value is stored and retrieved from Datomic."
+  [value]
+  (is (equivalent? value (round-trip-via-datomize (fresh-dbc) value))))
 
 (deftest test-datomize
-  (testing "of a number"
-    (round-trip-test 23))
-  (testing "of a nil"
-    (round-trip-test nil))
-  (testing "of an empty map"
-    (round-trip-test {}))
-  (testing "a map with one pair"
-    (round-trip-test {:a 1}))
-  (testing "a map with multiple pairs"
-    (round-trip-test {:a 1 :b 2}))
-  (testing "a nested map"
-    (round-trip-test {:a 1 :z {:aa 1 :bb 2 :cc {:aaa 1 :bbb 2}}}))
-  (testing "an empty vector"
-    (round-trip-test []))
-  (testing "a vector with one element"
-    (round-trip-test [1]))
-  (testing "a vector with many elements"
-    (round-trip-test [1 2 3]))
-  (testing "a nested vector"
-    (round-trip-test [1 2 [11 22 33] 3]))
-  (testing "a keyword value"
-    (round-trip-test :a))
-  (testing "a byte array value"
-    (round-trip-test (byte-array [(byte 1) (byte 2)]))))
+  (round-trip-datomize-test 23)
+  (round-trip-datomize-test nil)
+  (round-trip-datomize-test {})
+  (round-trip-datomize-test {:a 1})
+  (round-trip-datomize-test {:a 1 :b 2})
+  (round-trip-datomize-test {:a 1 :z {:aa 1 :bb 2 :cc {:aaa 1 :bbb 2}}})
+  (round-trip-datomize-test [])
+  (round-trip-datomize-test [1])
+  (round-trip-datomize-test [1 2 3])
+  (round-trip-datomize-test [1 2 [11 22 33] 3])
+  (round-trip-datomize-test :a)
+  (round-trip-datomize-test (byte-array [(byte 1) (byte 2)])))
+
+(deftest test-edenize
+  (round-trip-edenize-test 23)
+  (round-trip-edenize-test nil)
+  (round-trip-edenize-test {})
+  (round-trip-edenize-test {:a 1})
+  (round-trip-edenize-test {:a 1 :b 2})
+  (round-trip-edenize-test {:a 1 :z {:aa 1 :bb 2 :cc {:aaa 1 :bbb 2}}})
+  (round-trip-edenize-test [])
+  (round-trip-edenize-test [1])
+  (round-trip-edenize-test [1 2 3])
+  (round-trip-edenize-test [1 2 [11 22 33] 3])
+  (round-trip-edenize-test :a))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update tests
 
 (defn update [dbc initial-value subsequent-value]
-  (let [initial-entity (store-test-entity dbc initial-value)
-        result-entity (store-test-entity dbc subsequent-value :id (:db/id initial-entity))]
+  (let [initial-entity (datomize-test-entity dbc initial-value)
+        result-entity (datomize-test-entity dbc subsequent-value :id (:db/id initial-entity))]
     ((test-attribute subsequent-value) (undatomize result-entity))))
 
 (defn update-test
@@ -222,10 +257,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generative Testing
 
-(def prop-round-trip
+(def prop-round-trip-via-datomize
   (prop/for-all [value marshalable-value]
                 (let [dbc (fresh-dbc)
-                      result (round-trip dbc value)
+                      result (round-trip-via-datomize dbc value)
                       garbage (invalid-elements (db dbc))]
                   (when-not (= 0 (count garbage))
                     (print "invalid elements: ")
@@ -233,7 +268,7 @@
                   (and (= [] garbage)
                        (equivalent? value result)))))
 
-(def prop-update
+(def prop-update-via-datomize
   (prop/for-all [initial-value marshalable-value
                  subsequent-value marshalable-value]
                 (let [dbc (fresh-dbc)
@@ -245,6 +280,6 @@
                   (and (= [] garbage)
                        (equivalent? subsequent-value result)))))
 
-(defspec quickcheck-round-trip 30 prop-round-trip)
+(defspec quickcheck-round-trip 30 prop-round-trip-via-datomize)
 
-(defspec quickcheck-update 30 prop-update)
+(defspec quickcheck-update 30 prop-update-via-datomize)

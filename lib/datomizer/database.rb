@@ -69,6 +69,28 @@ module Datomizer
       transact([[:'db.fn/retractEntity', entity_id]])
     end
 
+    def datomize(data)
+      result = transact([[:'dmzr/datomize', data]])
+      result.resolve_tempid(data[:'db/id'])
+    end
+
+    def undatomize(id)
+      e = entity(id)
+      clojure_data = Utility.run_database_function(self, :'dmzr/undatomize', e.datomic_entity)
+      Translation.from_clj(clojure_data)
+    end
+
+    def edenize(data)
+      result = transact([[:'dmzr/edenize', data]])
+      result.resolve_tempid(data[:'db/id'])
+    end
+
+    def unedenize(id)
+      e = entity(id)
+      clojure_data = Utility.run_database_function(self, :'dmzr/unedenize', e.datomic_entity)
+      Translation.from_clj(clojure_data)
+    end
+
     def self.convert_datoms(datoms)
       case datoms
         when Array

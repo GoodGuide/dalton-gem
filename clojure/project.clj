@@ -1,7 +1,7 @@
 (defproject datomizer "0.1.0-SNAPSHOT"
   :description "Simple Datomic adapter and marshalling for JRuby"
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [com.datomic/datomic-pro "0.9.4470"]
+                 [com.datomic/datomic-pro "0.9.4532"]
                  [reiddraper/simple-check "0.5.6"]]
   :profiles {:dev {:source-paths ["dev"]
                    :dependencies [[org.clojure/tools.namespace "0.2.4"]

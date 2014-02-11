@@ -17,36 +17,26 @@ describe Datomizer::Marshalling::Datomization do
 
 
   describe 'data structure handling' do
+    let(:attribute) {:'test/edn'}
     before do
-      Datomizer::Marshalling::Serialization.install_schema(d)
+      Datomizer::Marshalling.install_schema(d)
       d.transact([{:'db/id' => Datomizer::Database.tempid(':db.part/db'),
-                    :'db/ident' => :'test/edn-value',
+                    :'db/ident' => attribute,
                     :'db/valueType' => :'db.type/string',
                     :'db/cardinality' => :'db.cardinality/one',
-                    :'db/doc' => "A reference attribute for testing serialization",
-                    :'db/isComponent' => true,
-                    :'ref/type' => :'ref/edn',
-                    :'db.install/_attribute' => :'db.part/db',
-                   }])
+                    :'db/doc' => "An EDN string field for edenization testing.",
+                    :'dmzr.ref/type' => :'dmzr.ref.type/edn',
+                    :'db.install/_attribute' => :'db.part/db'}])
     end
 
     shared_examples_for "a round-trip to/from the database" do
       it "should store and retrieve the value" do
-        collection_edn = Datomizer::Marshalling::Serialization.collection_to_edn(value)
-
-        d.transact([{:'db/id' => Datomizer::Database.tempid,
-                     :'test/edn-value' => collection_edn
-                    }])
-
-        entities = d.retrieve([:find, :'?e', :where, [:'?e', :'test/edn-value']])
-        expect(entities.size).to eq(1)
-        entity = entities.first
-
-        data = Datomizer::Marshalling::Serialization.entity_to_data(entity)
-
-        expect(data[:'test/edn-value']).to eq(value)
+        id = Datomizer::Database.tempid
+        original_data = {:'db/id' => id, attribute => value}
+        real_id = d.edenize(original_data)
+        round_tripped_data = d.unedenize(real_id)
+        expect(round_tripped_data[attribute]).to eq(value)
       end
-
     end
 
     context "with an empty map" do

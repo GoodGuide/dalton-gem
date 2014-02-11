@@ -1,8 +1,28 @@
-[
- {:db/id #db/id [:db.part/user]
-  :db/ident :dmzr.datomize
-  :db/doc "Data function that increments value of attribute a by amount."
+[{:db/id #db/id [:db.part/user]
+  :db/ident :dmzr/datomize
+  :db/doc "Store data, datomizing maps, vectors, and variants."
   :db/fn #db/fn {:lang "clojure"
                  :params [db entity]
-                 :requires [[datomizer.datomize]]
-                 :code "(datomizer.datomize/datomize db entity)"}}]
+                 :requires [[datomizer.datomize.encode]]
+                 :code "(datomizer.datomize.encode/datomize db entity)"}}
+ {:db/id #db/id [:db.part/user]
+  :db/ident :dmzr/undatomize
+  :db/doc "Undatomize an entity stored with datomize."
+  :db/fn #db/fn {:lang "clojure"
+                 :params [entity]
+                 :requires [[datomizer.datomize.decode]]
+                 :code "(datomizer.datomize.decode/undatomize entity)"}}
+ {:db/id #db/id [:db.part/user]
+  :db/ident :dmzr/edenize
+  :db/doc "Store data, datomizing maps, vectors, and variants."
+  :db/fn #db/fn {:lang "clojure"
+                 :params [db entity]
+                 :requires [[datomizer.edenize.encode]]
+                 :code "(datomizer.edenize.encode/edenize db entity)"}}
+ {:db/id #db/id [:db.part/user]
+  :db/ident :dmzr/unedenize
+  :db/doc "Unedenize an entity stored with edenize."
+  :db/fn #db/fn {:lang "clojure"
+                 :params [entity]
+                 :requires [[datomizer.edenize.decode]]
+                 :code "(datomizer.edenize.decode/unedenize entity)"}}]

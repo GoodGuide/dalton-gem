@@ -1,6 +1,7 @@
-(ns datomizer.datomize.datoms
+(ns datomizer.datoms
   "Datom wrangling."
-  (:require [datomic.api :as d]))
+  (:require [datomic.api :as d]
+            [datomizer.utility.debug :refer [dbg]]))
 
 (defn Datom->vector
   "Convert a Datom to a vector of [operation entity-id attribute value]"
