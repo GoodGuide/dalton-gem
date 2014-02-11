@@ -2,11 +2,11 @@ module Datomizer
   module Datomization
 
     def datomizer_schema
-      Datomizer::Utility.read_edn(File.read(File.expand_path("../../../clojure/resources/datomizer-schema.edn", __FILE__)))
+      Utility.read_edn(File.read(File.expand_path("../../../clojure/resources/datomizer-schema.edn", __FILE__)))
     end
 
     def datomizer_functions
-      Datomizer::Utility.read_edn(File.read(File.expand_path("../../../clojure/resources/datomizer-functions.edn", __FILE__)))
+      Utility.read_edn(File.read(File.expand_path("../../../clojure/resources/datomizer-functions.edn", __FILE__)))
     end
 
     def install_datomization_schema
@@ -21,7 +21,8 @@ module Datomizer
 
     def undatomize(id)
       e = entity(id)
-      clojure_data = Utility.run_database_function(self, :'dmzr/undatomize', e.datomic_entity)
+      Utility.require_clojure('datomizer.datomize.decode')
+      clojure_data = Utility.run_clojure("datomizer.datomize.decode/undatomize", e.datomic_entity)
       Translation.from_clj(clojure_data)
     end
 
