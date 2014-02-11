@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Datomizer::Marshalling::Datomization do
 
-  let(:uri) { 'datomic:dev://localhost:4334/spec' }
+  let(:uri) { 'datomic:mem://spec' }
   let(:d) { Datomizer::Database.new(uri) }
 
   before do

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Datomizer::Marshalling::Datomization do
+describe Datomizer::Marshalling::Edenization do
 
   let(:uri) { 'datomic:mem://spec' }
   let(:d) { Datomizer::Database.new(uri) }
@@ -14,7 +14,6 @@ describe Datomizer::Marshalling::Datomization do
   after do
     d.destroy
   end
-
 
   describe 'data structure handling' do
     let(:attribute) {:'test/edn'}

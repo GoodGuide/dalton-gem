@@ -5,18 +5,17 @@ require 'rubygems'
 require 'lock_jar'
 LockJar.load
 
-# puts "classpath is:"
-# JRuby.runtime.jruby_class_loader.uRLs.each {|x| puts x.toString}
-
 require 'zweikopf'
 
+require_relative('datomizer/database')
+require_relative('datomizer/entity')
+require_relative('datomizer/transaction_result')
+require_relative('datomizer/utility')
+require_relative('datomizer/translation')
+require_relative('datomizer/marshalling')
+
 module Datomizer
-  autoload :Database, File.join(File.dirname(__FILE__), 'datomizer', 'database')
-  autoload :Entity, File.join(File.dirname(__FILE__), 'datomizer', 'entity')
-  autoload :TransactionResult, File.join(File.dirname(__FILE__), 'datomizer', 'transaction_result')
-  autoload :Utility, File.join(File.dirname(__FILE__), 'datomizer', 'utility')
-  autoload :Translation, File.join(File.dirname(__FILE__), 'datomizer', 'translation')
-  autoload :Marshalling, File.join(File.dirname(__FILE__), 'datomizer', 'marshalling')
+
 end
 
 class Object
