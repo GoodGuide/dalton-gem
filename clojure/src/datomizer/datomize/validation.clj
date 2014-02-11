@@ -13,18 +13,18 @@
 
 (defn valid-map? [db element]
   (let [attributes (apply hash-set (keys element))]
-    (or (:dmzr.ref/empty element)
+    (or (:dmzr/empty element)
         (and (contains? attributes :dmzr.element.map/key)
              (not (contains? attributes :dmzr.element.vector/index))
              (some #(re-matches #"^:dmzr.element\.value/.*" (str %)) attributes)))))
 
 (defn valid-vector? [db element]
   (let [attributes (apply hash-set (keys element))]
-    (or (:dmzr.ref/empty element)
+    (or (:dmzr/empty element)
         (and (not (contains? (keys element) :dmzr.element.map/key))
              (contains? attributes :dmzr.element.vector/index)
              (some #(re-matches #"^:dmzr.element\.value/.*" (str %)) attributes)))
-    :dmzr.ref.type/variant (and (not (contains? attributes :dmzr.element.map/key))
+    :dmzr.type/variant (and (not (contains? attributes :dmzr.element.map/key))
                          (not (contains? attributes :dmzr.element.vector/index))
                          (some #(re-matches #"^:dmzr.element\.value/.*" (str %)) attributes))))
 
@@ -43,9 +43,9 @@
         attributes (apply hash-set (keys element))]
     (and  (= 1 (count ownerships))
           (case ownership-type
-            :dmzr.ref.type/map (valid-map? db element)
-            :dmzr.ref.type/vector (valid-vector? db element)
-            :dmzr.ref.type/variant (valid-value? db element)))))
+            :dmzr.type/map (valid-map? db element)
+            :dmzr.type/vector (valid-vector? db element)
+            :dmzr.type/variant (valid-value? db element)))))
 
 (defn invalid-elements [db]
   (remove (partial valid? db) (retrieve-all-elements db)))

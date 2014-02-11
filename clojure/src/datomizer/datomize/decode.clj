@@ -49,7 +49,7 @@
 (defn empty-datomized-container?
   "Does this value represent and empty container?"
   [value]
-  (and (coll? value) (some :dmzr.ref/empty value)))
+  (and (coll? value) (some :dmzr/empty value)))
 
 (defn decode-map
   "Decode a datomized map."
@@ -84,10 +84,10 @@
   [entity key]
   (let [value (get entity (str key))]
     (case (ref-type (.db entity) key)
-      (:dmzr.ref.type/map) (decode-map value)
-      (:dmzr.ref.type/vector) (decode-vector value)
-      (:dmzr.ref.type/variant) (decode-variant value)
-      (:dmzr.ref.type/edn) (clojure.edn/read-string value)
+      (:dmzr.type/map) (decode-map value)
+      (:dmzr.type/vector) (decode-vector value)
+      (:dmzr.type/variant) (decode-variant value)
+      (:dmzr.type/edn) (clojure.edn/read-string value)
       (when-not (= :dmzr.element.value/nil key) value))))
 
 (defn undatomize

@@ -24,7 +24,7 @@ describe Datomizer::Datomization do
                  :'db/cardinality' => :'db.cardinality/many',
                  :'db/doc' => "A reference attribute for testing datomization",
                  :'db/isComponent' => true,
-                 :'dmzr.ref/type' => :'dmzr.ref.type/map',
+                 :'dmzr.ref/type' => :'dmzr.type/map',
                  :'db.install/_attribute' => :'db.part/db',
                 },
                 {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
@@ -33,7 +33,7 @@ describe Datomizer::Datomization do
                  :'db/cardinality' => :'db.cardinality/many',
                  :'db/doc' => "A reference attribute for testing datomization",
                  :'db/isComponent' => true,
-                 :'dmzr.ref/type' => :'dmzr.ref.type/vector',
+                 :'dmzr.ref/type' => :'dmzr.type/vector',
                  :'db.install/_attribute' => :'db.part/db',
                 },
                 {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
@@ -41,7 +41,7 @@ describe Datomizer::Datomization do
                  :'db/valueType' => :'db.type/string',
                  :'db/cardinality' => :'db.cardinality/one',
                  :'db/doc' => "An EDN string field for edenization testing.",
-                 :'dmzr.ref/type' => :'dmzr.ref.type/edn',
+                 :'dmzr.ref/type' => :'dmzr.type/edn',
                  :'db.install/_attribute' => :'db.part/db'}])
   end
 

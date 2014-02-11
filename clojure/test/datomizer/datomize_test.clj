@@ -27,7 +27,7 @@
     :db/unique :db.unique/value
     :db/doc "A reference attribute for testing map marshalling"
     :db/isComponent true
-    :dmzr.ref/type :dmzr.ref.type/map
+    :dmzr.ref/type :dmzr.type/map
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/vector
@@ -36,7 +36,7 @@
     :db/unique :db.unique/value
     :db/doc "A reference attribute for testing vector marshalling"
     :db/isComponent true
-    :dmzr.ref/type :dmzr.ref.type/vector
+    :dmzr.ref/type :dmzr.type/vector
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/value
@@ -45,14 +45,14 @@
     :db/unique :db.unique/value
     :db/doc "A reference attribute for testing variant marshalling"
     :db/isComponent true
-    :dmzr.ref/type :dmzr.ref.type/variant
+    :dmzr.ref/type :dmzr.type/variant
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/edn
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one
     :db/doc "An EDN string field for edenization testing."
-    :dmzr.ref/type :dmzr.ref.type/edn
+    :dmzr.ref/type :dmzr.type/edn
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :test/names
@@ -249,19 +249,19 @@
     (let [dbc (fresh-dbc)
           tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
                                        :test/map {:db/id (d/tempid :db.part/user)
-                                                  :dmzr.ref/empty true}}])
+                                                  :dmzr/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
-      (is (= :dmzr.ref.type/map (ref-type (db dbc) :test/map)))))
+      (is (= :dmzr.type/map (ref-type (db dbc) :test/map)))))
 
   (testing "with an attribute representing a vector"
     (let [dbc (fresh-dbc)
           tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
                                          :test/vector {:db/id (d/tempid :db.part/user)
-                                                  :dmzr.ref/empty true}}])
+                                                  :dmzr/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
           entity (d/entity (db dbc) entity-id)]
-      (is (= :dmzr.ref.type/vector (ref-type (db dbc) :test/vector))))))
+      (is (= :dmzr.type/vector (ref-type (db dbc) :test/vector))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

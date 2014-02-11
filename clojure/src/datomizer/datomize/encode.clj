@@ -64,7 +64,7 @@
                    :in $ ?attribute ?parent-id
                    :where
                    [?parent-id ?attribute ?e]
-                   [?e :dmzr.ref/empty true]]
+                   [?e :dmzr/empty true]]
                  (:db context)
                  (:attribute context)
                  (:id context)))
@@ -87,10 +87,10 @@
   a collection)."
   [context]
   (case (ref-type (:db context) (:attribute context))
-    :dmzr.ref.type/map :dmzr.element.map/key
-    :dmzr.ref.type/vector :dmzr.element.vector/index
-    :dmzr.ref.type/variant nil
-    :dmzr.ref.type/edn nil
+    :dmzr.type/map :dmzr.element.map/key
+    :dmzr.type/vector :dmzr.element.vector/index
+    :dmzr.type/variant nil
+    :dmzr.type/edn nil
     nil nil))
 
 (defn encode-value
@@ -128,26 +128,26 @@
 
 (defn encode-empty [context]
   (let [id (determine-empty-marker-id context)]
-    [id [[(:operation context) id :dmzr.ref/empty true]]]))
+    [id [[(:operation context) id :dmzr/empty true]]]))
 
-(defmethod encode :dmzr.ref.type/map
+(defmethod encode :dmzr.type/map
   [context value]
   (if (empty? value)
     (encode-empty context)
     (condense-elements (map (fn [[k, v]] (encode-pair context :dmzr.element.map/key k v))
                             value))))
 
-(defmethod encode :dmzr.ref.type/vector [context value]
+(defmethod encode :dmzr.type/vector [context value]
   (if (empty? value)
     (encode-empty context)
     (condense-elements (map (fn [[i, v]] (encode-pair context :dmzr.element.vector/index i v))
                             (zipmap (range) value)))))
 
-(defmethod encode :dmzr.ref.type/variant [context value]
+(defmethod encode :dmzr.type/variant [context value]
   (let [id (determine-variant-id context)]
     (encode-value (assoc context :id id :attribute (attribute-for-value value)) value)))
 
-(defmethod encode :dmzr.ref.type/edn [context value]
+(defmethod encode :dmzr.type/edn [context value]
   [(pr-str value) []])
 
 (defmethod encode nil [_ value]
