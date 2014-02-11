@@ -38,10 +38,9 @@ describe Datomizer::Entity do
     subject { entity.to_h }
 
     it 'should translate the entity to a hash' do
-      expect(subject).to eq({:'db/id' => tempids.first,
-                             :'db/doc' => 'foo',
+      expect(subject).to eq({:'db/doc' => 'foo',
                              :'test/stuff' =>
-                               {:'db/id' => tempids.last, :'db/doc' => 'bar'}})
+                               {:'db/doc' => 'bar'}})
     end
   end
 end

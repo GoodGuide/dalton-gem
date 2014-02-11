@@ -25,7 +25,7 @@ module Datomizer
     end
 
     def keys
-      datomic_entity.keySet.map{|x| x.sub(/^:/, '').to_sym}.to_a + [:'db/id']
+      datomic_entity.keySet.map{|x| x.sub(/^:/, '').to_sym}.to_a
     end
 
     def id
