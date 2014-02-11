@@ -12,7 +12,7 @@ require_relative('datomizer/entity')
 require_relative('datomizer/transaction_result')
 require_relative('datomizer/utility')
 require_relative('datomizer/translation')
-require_relative('datomizer/marshalling')
+require_relative('datomizer/datomization')
 
 module Datomizer
 
