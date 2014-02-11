@@ -90,6 +90,7 @@
     :dmzr.ref.type/map :dmzr.element.map/key
     :dmzr.ref.type/vector :dmzr.element.vector/index
     :dmzr.ref.type/variant nil
+    :dmzr.ref.type/edn nil
     nil nil))
 
 (defn encode-value
@@ -145,6 +146,9 @@
 (defmethod encode :dmzr.ref.type/variant [context value]
   (let [id (determine-variant-id context)]
     (encode-value (assoc context :id id :attribute (attribute-for-value value)) value)))
+
+(defmethod encode :dmzr.ref.type/edn [context value]
+  [(pr-str value) []])
 
 (defmethod encode nil [_ value]
   (if (nil? value)

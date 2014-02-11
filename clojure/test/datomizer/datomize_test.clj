@@ -7,7 +7,6 @@
             [datomizer.datomize.encode :refer :all]
             [datomizer.datomize.setup :refer :all]
             [datomizer.datomize.validation :refer :all]
-            [datomizer.edenize.decode :refer :all]
             [datomizer.test-utility.check :refer [datomizable-value
                                                   edenizable-value]]
             [datomizer.utility.byte-array :refer :all]
@@ -112,20 +111,20 @@
   (marshal-test-entity dbc :dmzr/datomize (test-attribute value) value :id id ))
 
 (defn edenize-test-entity [dbc value & {:keys [id]}]
-  (marshal-test-entity dbc :dmzr/edenize :test/edn value :id id ))
+  (marshal-test-entity dbc :dmzr/datomize :test/edn value :id id ))
 
 (defn round-trip-via-datomize
-  "Store, then retrieve a value to/from Datomic using edenization."
+  "Store, then retrieve a value to/from Datomic using datomization."
   [dbc value]
   (let [entity (datomize-test-entity dbc value)
         data (undatomize entity)]
     ((test-attribute value) data)))
 
 (defn round-trip-via-edenize
-  "Store, then retrieve a value to/from Datomic using datomization."
+  "Store, then retrieve a value to/from Datomic using edenization."
   [dbc value]
   (let [entity (edenize-test-entity dbc value)
-        data (unedenize entity)]
+        data (undatomize entity)]
     (:test/edn data)))
 
 (defn round-trip-edenize-test
@@ -185,7 +184,7 @@
 (defn update-via-edenize [dbc initial-value subsequent-value]
   (let [initial-entity (edenize-test-entity dbc initial-value)
         result-entity (edenize-test-entity dbc subsequent-value :id (:db/id initial-entity))]
-    (:test/edn (unedenize result-entity))))
+    (:test/edn (undatomize result-entity))))
 
 
 (defn update-via-datomize-test

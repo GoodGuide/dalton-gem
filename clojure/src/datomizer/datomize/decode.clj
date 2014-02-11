@@ -68,7 +68,7 @@
     (->> elements
          (map decode-element)
          (sort-by first)
-         (map last))))
+         (mapv last))))
 
 (defn decode
   "Decode a value."
@@ -82,12 +82,13 @@
 (defn undatomize-attribute
   "Decode an entity's attribute value."
   [entity key]
-  (let [elements (get entity (str key))]
+  (let [value (get entity (str key))]
     (case (ref-type (.db entity) key)
-      (:dmzr.ref.type/map) (decode-map elements)
-      (:dmzr.ref.type/vector) (decode-vector elements)
-      (:dmzr.ref.type/variant) (decode-variant elements)
-      (when-not (= :dmzr.element.value/nil key) elements))))
+      (:dmzr.ref.type/map) (decode-map value)
+      (:dmzr.ref.type/vector) (decode-vector value)
+      (:dmzr.ref.type/variant) (decode-variant value)
+      (:dmzr.ref.type/edn) (clojure.edn/read-string value)
+      (when-not (= :dmzr.element.value/nil key) value))))
 
 (defn undatomize
   "Decode a datomized entity."

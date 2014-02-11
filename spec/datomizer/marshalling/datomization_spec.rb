@@ -15,8 +15,7 @@ describe Datomizer::Marshalling::Datomization do
     d.destroy
   end
 
-
-  describe 'data structure handling' do
+  describe 'marshalling via datomization' do
     before do
       Datomizer::Marshalling.install_schema(d)
 
@@ -39,10 +38,17 @@ describe Datomizer::Marshalling::Datomization do
                     :'dmzr.ref/type' => :'dmzr.ref.type/vector',
                     :'db.install/_attribute' => :'db.part/db',
                    },
+                   {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
+                    :'db/ident' => :'test/edn',
+                    :'db/valueType' => :'db.type/string',
+                    :'db/cardinality' => :'db.cardinality/one',
+                    :'db/doc' => "An EDN string field for edenization testing.",
+                    :'dmzr.ref/type' => :'dmzr.ref.type/edn',
+                    :'db.install/_attribute' => :'db.part/db'}
                  ])
     end
 
-    shared_examples_for "a round-trip to/from the database" do |attribute|
+    shared_examples_for "it round trips via datomization" do |attribute|
       it "should store and retrieve the value" do
         id = Datomizer::Database.tempid
         original_data = {:'db/id' => id, attribute => value}
@@ -55,44 +61,50 @@ describe Datomizer::Marshalling::Datomization do
     context "with an empty map" do
       let(:value) { {} }
 
-      it_should_behave_like "a round-trip to/from the database", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/edn'
     end
 
     context "with a single map element" do
       let(:value) { {:a => 'grue'} }
 
-      it_should_behave_like "a round-trip to/from the database", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/edn'
     end
 
     context "with multiple map elements" do
       let(:value) { {:a => 'grue', :b => 'wumpus'} }
 
-      it_should_behave_like "a round-trip to/from the database", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/edn'
     end
 
     context "with a nested map" do
       let(:value) { {:a => {:b => 'fnord'}} }
 
-      it_should_behave_like "a round-trip to/from the database", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/map'
+      it_should_behave_like "it round trips via datomization", :'test/edn'
     end
 
     context "with an empty array" do
       let(:value) { [] }
 
-      it_should_behave_like "a round-trip to/from the database", :'test/vector'
+      it_should_behave_like "it round trips via datomization", :'test/vector'
+      it_should_behave_like "it round trips via datomization", :'test/edn'
     end
 
     context "with array values" do
       let(:value) { ['a', 'b', 'c'] }
 
-      it_should_behave_like "a round-trip to/from the database", :'test/vector'
+      it_should_behave_like "it round trips via datomization", :'test/vector'
+      it_should_behave_like "it round trips via datomization", :'test/edn'
     end
 
     context "with nested data structure values" do
-      let(:value) { [0, 1, 'a', 'b', 'c', ['x', 'y', 'z']] }
+      let(:value) { [0, 1, 'a', 'b', 'c', [{:a => {:b => 'fnord'}}, 'x', 'y', 'z']] }
 
-      it_should_behave_like "a round-trip to/from the database", :'test/vector'
+      it_should_behave_like "it round trips via datomization", :'test/vector'
+      it_should_behave_like "it round trips via datomization", :'test/edn'
     end
-
   end
 end

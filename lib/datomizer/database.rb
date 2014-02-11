@@ -2,13 +2,11 @@ java_import "clojure.lang.Keyword"
 java_import "datomic.Peer"
 
 require_relative 'marshalling/datomization'
-require_relative 'marshalling/edenization'
 
 module Datomizer
   class Database
 
     include Datomizer::Marshalling::Datomization
-    include Datomizer::Marshalling::Edenization
 
     def initialize(uri)
       @uri = uri
