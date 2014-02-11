@@ -69,8 +69,13 @@
 
 (def gen-date (gen/fmap #(java.util.Date. %) gen/nat))
 
-(def datomic-compatible-type
+(def datomizable-type
   (gen/one-of [gen/string-ascii gen-long gen-float gen-double gen/boolean gen-date gen/keyword gen-bigdec gen-bigint* gen/bytes]))
+
+(def edenizable-type
+  ;; byte-arrays are not supported.
+  ;; floats come back as doubles.
+  (gen/one-of [gen/string-ascii gen-long gen-double gen/boolean gen-date gen/keyword gen-bigdec gen-bigint*]))
 
 (defn container-type-keyword-keys
   [inner-type]
@@ -85,5 +90,8 @@
       (gen/one-of [inner-type
                (container-type-keyword-keys (gen/resize (quot size 2) (gen/sized (sized-container-keyword-keys inner-type))))]))))
 
-(def marshalable-value
-  (gen/one-of [datomic-compatible-type (gen/sized (sized-container-keyword-keys datomic-compatible-type))]))
+(def datomizable-value
+  (gen/one-of [datomizable-type (gen/sized (sized-container-keyword-keys datomizable-type))]))
+
+(def edenizable-value
+  (gen/one-of [edenizable-type (gen/sized (sized-container-keyword-keys edenizable-type))]))

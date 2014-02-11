@@ -7,11 +7,11 @@
             [datomizer.datomize.encode :refer :all]
             [datomizer.datomize.setup :refer :all]
             [datomizer.datomize.validation :refer :all]
-            [datomizer.edenize.encode :refer :all]
             [datomizer.edenize.decode :refer :all]
-            [datomizer.test-utility.check :refer [marshalable-value]]
+            [datomizer.test-utility.check :refer [datomizable-value
+                                                  edenizable-value]]
             [datomizer.utility.byte-array :refer :all]
-            [datomizer.utility.debug :refer [dbg]]
+            [datomizer.utility.debug :refer :all]
             [datomizer.utility.misc :refer [ref-type]]
             [simple-check.clojure-test :refer [defspec]]
             [simple-check.properties :as prop]))
@@ -98,25 +98,21 @@
         (vector? value) :test/vector
         :else :test/value))
 
-(defn datomize-test-entity [dbc value & {:keys [id]}]
+(defn marshal-test-entity [dbc marshalling-function attribute value & {:keys [id]}]
   (let [id (or id (d/tempid :db.part/user))
         entity-data {:db/id id
                     :db/doc "Test entity."
-                    (test-attribute value) value}
-        tx-result @(d/transact dbc [[:dmzr/datomize entity-data]])
+                    attribute value}
+        tx-result @(d/transact dbc [[marshalling-function entity-data]])
         entity-id (if (number? id) id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) id))
         entity (d/entity (:db-after tx-result) entity-id)]
     (d/touch entity)))
 
+(defn datomize-test-entity [dbc value & {:keys [id]}]
+  (marshal-test-entity dbc :dmzr/datomize (test-attribute value) value :id id ))
+
 (defn edenize-test-entity [dbc value & {:keys [id]}]
-  (let [id (or id (d/tempid :db.part/user))
-        entity-data {:db/id id
-                    :db/doc "Test entity."
-                    :test/edn value}
-        tx-result @(d/transact dbc (edenize (db dbc) entity-data))
-        entity-id (if (number? id) id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) id))
-        entity (d/entity (:db-after tx-result) entity-id)]
-    (d/touch entity)))
+  (marshal-test-entity dbc :dmzr/edenize :test/edn value :id id ))
 
 (defn round-trip-via-datomize
   "Store, then retrieve a value to/from Datomic using edenization."
@@ -142,7 +138,11 @@
   [value]
   (is (equivalent? value (round-trip-via-datomize (fresh-dbc) value))))
 
+
+(def datomizables [23 nil {} {:a 1} {:a 1, :b 2} {:a 1, :z {:aa 1, :bb 2, :cc {:aaa 1, :bbb 2}}} [] [1] [1 2 3] [1 2 [11 22 33] 3] :a (byte-array [(byte 1) (byte 2)])])
+
 (deftest test-datomize
+  (map println datomizables)
   (round-trip-datomize-test 23)
   (round-trip-datomize-test nil)
   (round-trip-datomize-test {})
@@ -167,38 +167,64 @@
   (round-trip-edenize-test [1])
   (round-trip-edenize-test [1 2 3])
   (round-trip-edenize-test [1 2 [11 22 33] 3])
-  (round-trip-edenize-test :a))
+  (round-trip-edenize-test :a)
+  (round-trip-edenize-test [[[-0.1]]])
+  ; edenizing byte-arrays is not supported
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update tests
 
-(defn update [dbc initial-value subsequent-value]
+(defn update-via-datomize [dbc initial-value subsequent-value]
   (let [initial-entity (datomize-test-entity dbc initial-value)
         result-entity (datomize-test-entity dbc subsequent-value :id (:db/id initial-entity))]
     ((test-attribute subsequent-value) (undatomize result-entity))))
 
-(defn update-test
+
+(defn update-via-edenize [dbc initial-value subsequent-value]
+  (let [initial-entity (edenize-test-entity dbc initial-value)
+        result-entity (edenize-test-entity dbc subsequent-value :id (:db/id initial-entity))]
+    (:test/edn (unedenize result-entity))))
+
+
+(defn update-via-datomize-test
   "Test that a value stored in Datomic can be updated (without creating malformed elements)."
   [initial-value subsequent-value]
   (let [dbc (fresh-dbc)]
-    (is (equivalent? subsequent-value (update dbc initial-value subsequent-value)))
+    (is (equivalent? subsequent-value (update-via-datomize dbc initial-value subsequent-value)))
     (is (= [] (invalid-elements (db dbc))))))
 
-(deftest test-update
+(defn update-via-edenize-test
+  "Test that a value stored in Datomic can be updated (without creating malformed elements)."
+  [initial-value subsequent-value]
+  (let [dbc (fresh-dbc)]
+    (is (equivalent? subsequent-value (update-via-edenize dbc initial-value subsequent-value)))
+    (is (= [] (invalid-elements (db dbc))))))
 
-  (testing "map update"
-    (update-test {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
+(deftest test-update-via-datomize
+
+  (testing "map update-via-datomize"
+    (update-via-datomize-test {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
                  {:same "stays the same", :new "is added", :different "see, now different!" :nested {:a 1 :b 4 :d 5} }))
 
   (testing "updating a byte-array"
-    (update-test (byte-array [(byte 11) (byte 22)])
+    (update-via-datomize-test (byte-array [(byte 11) (byte 22)])
                  (byte-array [(byte 33) (byte 44)])))
 
   (testing "updating a map with nil values"
-    (update-test {}
+    (update-via-datomize-test {}
                  {:0 nil})))
 
+(deftest test-update-via-edenize
+
+  (testing "map update-via-edenize"
+    (update-via-edenize-test {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
+                 {:same "stays the same", :new "is added", :different "see, now different!" :nested {:a 1 :b 4 :d 5} }))
+
+  (testing "updating a map with nil values"
+    (update-via-edenize-test {}
+                 {:0 nil})))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit Testing
 
@@ -258,7 +284,7 @@
 ;; Generative Testing
 
 (def prop-round-trip-via-datomize
-  (prop/for-all [value marshalable-value]
+  (prop/for-all [value datomizable-value]
                 (let [dbc (fresh-dbc)
                       result (round-trip-via-datomize dbc value)
                       garbage (invalid-elements (db dbc))]
@@ -267,12 +293,13 @@
                     (pprint garbage))
                   (and (= [] garbage)
                        (equivalent? value result)))))
+(defspec quickcheck-round-trip-via-datomize 30 prop-round-trip-via-datomize)
 
 (def prop-update-via-datomize
-  (prop/for-all [initial-value marshalable-value
-                 subsequent-value marshalable-value]
+  (prop/for-all [initial-value datomizable-value
+                 subsequent-value datomizable-value]
                 (let [dbc (fresh-dbc)
-                      result (update dbc initial-value subsequent-value)
+                      result (update-via-datomize dbc initial-value subsequent-value)
                       garbage (invalid-elements (db dbc))]
                   (when-not (= 0 (count garbage))
                     (print "invalid elements: ")
@@ -280,6 +307,31 @@
                   (and (= [] garbage)
                        (equivalent? subsequent-value result)))))
 
-(defspec quickcheck-round-trip 30 prop-round-trip-via-datomize)
+(defspec quickcheck-update-via-datomize 30 prop-update-via-datomize)
 
-(defspec quickcheck-update 30 prop-update-via-datomize)
+(def prop-round-trip-via-edenize
+  (prop/for-all [value edenizable-value]
+                (let [dbc (fresh-dbc)
+                      result (round-trip-via-edenize dbc value)
+                      garbage (invalid-elements (db dbc))]
+                  (when-not (= 0 (count garbage))
+                    (print "invalid elements: ")
+                    (pprint garbage))
+                  (and (= [] garbage)
+                       (equivalent? value result)))))
+
+(defspec quickcheck-round-trip-via-edenize 30 prop-round-trip-via-edenize)
+
+(def prop-update-via-edenize
+  (prop/for-all [initial-value edenizable-value
+                 subsequent-value edenizable-value]
+                (let [dbc (fresh-dbc)
+                      result (update-via-edenize dbc initial-value subsequent-value)
+                      garbage (invalid-elements (db dbc))]
+                  (when-not (= 0 (count garbage))
+                    (print "invalid elements: ")
+                    (pprint garbage))
+                  (and (= [] garbage)
+                       (equivalent? subsequent-value result)))))
+
+(defspec quickcheck-update-via-edenize 30 prop-update-via-edenize)
