@@ -56,144 +56,125 @@
           (str "Marshalling not supported for type " (class value)))))
 
 
-(defrecord Context [operation   ; What operation we're currently performing: :db/add or :db/retract
-                    db          ; The database.
-                    partition   ; The partition where we're putting new datoms. Used for tempids.
-                    id          ; Id of the entity to which we are attaching a value.
-                    attribute]) ; Attribute on the entity which will point to this value.
 
-(defmulti encode
-  "Encode a value as datoms.  Returns a pair of values: the values to assign to
-  the parent attribute and a vec of datoms to transact."
-  (fn [context value-to-encode]
-    (ref-type (:db context) (:attribute context))))
 
+(defn tempid-from-same-partition [db id]
+  (d/tempid (d/part (d/entid db id))))
 
 (defn determine-element-id
   "Entity id of existing element, if any. Otherwise, a tempid."
-  [context key-attribute key]
+  [db id attribute key-attribute key]
   (or (ffirst (q '[:find ?e
                    :in $ ?attribute ?parent-id ?key-attribute ?key
                    :where
                    [?parent-id ?attribute ?e]
                    [?e ?key-attribute ?key]]
-                 (:db context)
-                 (:attribute context)
-                 (:id context)
+                 db
+                 attribute
+                 id
                  key-attribute
                  key))
-      (d/tempid (:partition context))))
+      (tempid-from-same-partition db id)))
 
 (defn determine-empty-marker-id
   "Entity id of existing element, if any. Otherwise, a tempid."
-  [context]
+  [db id attribute]
   (or (ffirst (q '[:find ?e
                    :in $ ?attribute ?parent-id
                    :where
                    [?parent-id ?attribute ?e]
                    [?e :dmzr/empty true]]
-                 (:db context)
-                 (:attribute context)
-                 (:id context)))
-      (d/tempid (:partition context))))
+                 db
+                 attribute
+                 id))
+      (tempid-from-same-partition db id)))
 
-(defn determine-variant-id [context]
+(defn determine-variant-id [db id attribute]
   "Entity id of existing variant, if any. Otherwise, a tempid."
   (or (ffirst (q '[:find ?e
-                    :in $ ?attribute ?parent-id
-                    :where
-                    [?parent-id ?attribute ?e]]
-                  (:db context)
-                  (:attribute context)
-                  (:id context)))
-      (d/tempid (:partition context))))
+                   :in $ ?attribute ?parent-id
+                   :where
+                   [?parent-id ?attribute ?e]]
+                 db
+                 attribute
+                 id))
+      (tempid-from-same-partition db id)))
 
 
-(defn determine-key-attribute
-  "Proper key attribute for elements added to the current value (if it's
-  a collection)."
-  [context]
-  (case (ref-type (:db context) (:attribute context))
-    :dmzr.type/map :dmzr.element.map/key
-    :dmzr.type/vector :dmzr.element.vector/index
-    :dmzr.type/variant nil
-    :dmzr.type/edn nil
-    nil nil))
 
-(defn encode-value
-  "Encode a value as a list of values/references and datoms to add or
-  retract from the current context."
-  [context value]
-  (let [[encoded-value datoms] (encode context value)
-        value-attribute (:attribute context)]
-    [(:id context)
-     (concat datoms
-             (if (sequential? encoded-value)
-               (map (fn [value]
-                      [(:operation context) (:id context) value-attribute value])
-                    encoded-value)
-               [[(:operation context) (:id context) value-attribute encoded-value]]))]))
+(def key-attributes {:dmzr.type/map :dmzr.element.map/key
+                     :dmzr.type/vector :dmzr.element.vector/index})
+
+(defn concat-nested
+  "Concatenate nested vectors.
+  [[[:a :b] [1 2]] [[:c :d] [3 4]]] -> [[:a :b :c :d] [1 2 3 4]]"
+  [x]
+  (mapv vec (apply map concat x)))
+
+(declare encode-value)
+
+(defn encode-key
+  "Encode an element key as a datom."
+  [id key-attribute k]
+  [:db/add id key-attribute k])
 
 (defn encode-pair
-  "Encode a key/value or index/value pairs as a list of references and
-  datoms to add or retract to the current context."
-  [context key-attribute k v]
-  (let [id (determine-element-id context key-attribute k)
-        value-attribute (attribute-for-value v)
-        element-context (assoc context :id id :attribute value-attribute )
-        key-datom [(:operation context) id key-attribute k]]
-    (let [[values datoms] (encode-value element-context v)]
-      [values (conj datoms key-datom)])))
+  "Encode a key/value or index/value pairs as a list of datoms"
+  [db collection-id attribute k v]
+  (let [key-attribute ((ref-type db attribute) key-attributes)
+        element-id (determine-element-id db collection-id attribute key-attribute k)]
+    (conj (encode-value db element-id (attribute-for-value v) v)
+          (encode-key element-id key-attribute k)
+          [:db/add collection-id attribute element-id])))
 
-(defn condense-elements
-  "Merge a list of value - datom list pairs."
-  [elements]
-  (reduce (fn [[accumulated-values accumulated-datoms]
-              [value datoms]]
-            [(concat accumulated-values (flatten [value])) (concat accumulated-datoms datoms)])
-          [[] []]
-          elements))
+(defn encode-empty [db id attribute]
+  (let [element-id (determine-empty-marker-id db id attribute)]
+    [[:db/add element-id :dmzr/empty true]
+     [:db/add id attribute element-id]]))
 
-(defn encode-empty [context]
-  (let [id (determine-empty-marker-id context)]
-    [id [[(:operation context) id :dmzr/empty true]]]))
+(defmulti encode-value
+  "Encode a value as datoms.
+  the parent attribute and a vec of datoms to transact."
+  (fn [db id attribute value-to-encode]
+    (ref-type db attribute)))
 
-(defmethod encode :dmzr.type/map
-  [context value]
+(defmethod encode-value :dmzr.type/map
+  [db id attribute value]
   (if (empty? value)
-    (encode-empty context)
-    (condense-elements (map (fn [[k, v]]
-                              (encode-pair context :dmzr.element.map/key k v))
-                            value))))
+    (encode-empty db id attribute)
+    (mapcat (fn [[k v]] (encode-pair db id attribute k v))
+            value)))
 
-(defmethod encode :dmzr.type/vector [context value]
+(defmethod encode-value :dmzr.type/vector
+  [db id attribute value]
   (if (empty? value)
-    (encode-empty context)
-    (condense-elements (map (fn [[i, v]] (encode-pair context :dmzr.element.vector/index i v))
-                            (zipmap (range) value)))))
+    (encode-empty db id attribute)
+    (apply concat (map-indexed (fn [i v] (encode-pair db id attribute i v))
+                      value))))
 
-(defmethod encode :dmzr.type/variant [context value]
-  (let [id (determine-variant-id context)]
-    (encode-value (assoc context :id id :attribute (attribute-for-value value)) value)))
+(defmethod encode-value :dmzr.type/variant
+  [db id attribute value]
+  (let [variant-id (determine-variant-id db id attribute)]
+    (conj (encode-value db variant-id (attribute-for-value value) value)
+          [:db/add id attribute variant-id])))
 
-(defmethod encode :dmzr.type/edn [context value]
-  [(pr-str value) []])
+(defmethod encode-value :dmzr.type/edn
+  [db id attribute value]
+  [[:db/add id attribute (pr-str value)]])
 
-(defmethod encode nil [_ value] ; attribute is not annotated with a datomizer type.
+(defmethod encode-value nil ; attribute is not annotated with a datomizer type.
+  [db id attribute value]
   (if (nil? value)
-    [:NIL []]
-    [value []]))
-
-(defn encode-data [context data]
-  (mapcat (fn [[attribute, value]]
-            (second (encode-value (assoc context :attribute attribute) value)))
-          data))
+    [[:db/add id attribute :NIL]]
+    [[:db/add id attribute value]]))
 
 (defn datomize
-  [db entity & {:keys [partition] :or {partition :db.part/user}}]
+  [db entity]
   (let [id (:db/id entity)
         data (dissoc entity :db/id)
-        context (map->Context {:db db, :operation :db/add, :partition partition, :id id})
         retractions (rehearse-transaction db [[:db.fn/retractEntity id]])
-        additions (map (partial resolve-idents db) (encode-data context data))]
+        additions (map (partial resolve-idents db)
+                       (mapcat (fn [[attribute, value]]
+                                 (encode-value db id attribute value))
+                               data))]
     (remove-conflicts db additions retractions)))
