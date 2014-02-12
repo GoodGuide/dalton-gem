@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_runtime_dependency 'lock_jar', '>=0.7.5'
-  s.add_runtime_dependency 'zweikopf', '>=0.0.6'
+  s.add_runtime_dependency 'zweikopf', '0.4.0'
   s.add_development_dependency 'rspec', '>=2.14.1'
 
   s.extensions = ["Rakefile"]
