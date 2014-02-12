@@ -11,5 +11,4 @@
   :db/fn #db/fn {:lang "clojure"
                  :params [entity]
                  :requires [[datomizer.datomize.decode]]
-                 :code "(datomizer.datomize.decode/undatomize entity)"}}
-]
+                 :code "(datomizer.datomize.decode/undatomize entity)"}}]

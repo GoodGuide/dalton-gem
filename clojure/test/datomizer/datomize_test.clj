@@ -39,7 +39,7 @@
     :dmzr.ref/type :dmzr.type/vector
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
-    :db/ident :test/value
+    :db/ident :test/variant
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/one
     :db/unique :db.unique/value
@@ -53,12 +53,6 @@
     :db/cardinality :db.cardinality/one
     :db/doc "An EDN string field for edenization testing."
     :dmzr.ref/type :dmzr.type/edn
-    :db.install/_attribute :db.part/db}
-   {:db/id (d/tempid :db.part/db)
-    :db/ident :test/names
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/many
-    :db/doc "A multiple string attribute for testing."
     :db.install/_attribute :db.part/db}])
 
 (defn load-datomizer-test-schema [dbc]
@@ -66,7 +60,7 @@
 
 (defonce test-database (atom nil))
 
-;;(def test-database-uri "datomic:dev://localhost:4334/datomizer-test")
+;; (def test-database-uri "datomic:dev://localhost:4334/datomizer-test")
 (def test-database-uri "datomic:mem://datomizer-test")
 
 (defn delete-test-database []
@@ -77,15 +71,14 @@
 (defn fresh-dbc
   "Create a fresh database for the test"
   []
-  (do
-    (delete-test-database)
-    (d/create-database test-database-uri)
-    (let [dbc (d/connect test-database-uri)]
-      (load-datomizer-schema dbc)
-      (load-datomizer-functions dbc)
-      (load-datomizer-test-schema dbc)
-      (reset! test-database dbc)
-      dbc)))
+  (delete-test-database)
+  (d/create-database test-database-uri)
+  (let [dbc (d/connect test-database-uri)]
+    (load-datomizer-schema dbc)
+    (load-datomizer-functions dbc)
+    (load-datomizer-test-schema dbc)
+    (reset! test-database dbc)
+    dbc))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,14 +89,14 @@
   [value]
   (cond (map? value) :test/map
         (vector? value) :test/vector
-        :else :test/value))
+        :else :test/variant))
 
 (defn edenization-test-attribute
   "Test attribute for edenizing value."
   [_]
   :test/edn)
 
-(defn marshal-test-entity [dbc attribute-fn value & {:keys [id]}]
+(defn datomize-test-entity [dbc attribute-fn value & {:keys [id]}]
   (let [id (or id (d/tempid :db.part/user))
         entity-data {:db/id id
                     :db/doc "Test entity."
@@ -116,7 +109,7 @@
 (defn round-trip
   "Store, then retrieve a value to/from Datomic using datomization."
   [dbc attribute-fn value]
-  (let [entity (marshal-test-entity dbc attribute-fn value)
+  (let [entity (datomize-test-entity dbc attribute-fn value)
         data (undatomize entity)]
     ((attribute-fn value) data)))
 
@@ -139,10 +132,13 @@
   (round-trip-datomize-test {:a 1 :z {:aa 1 :bb 2 :cc {:aaa 1 :bbb 2}}})
   (round-trip-datomize-test [])
   (round-trip-datomize-test [1])
+  (round-trip-datomize-test [1 nil 3])
   (round-trip-datomize-test [1 2 3])
   (round-trip-datomize-test [1 2 [11 22 33] 3])
   (round-trip-datomize-test :a)
-  (round-trip-datomize-test (byte-array [(byte 1) (byte 2)])))
+  (round-trip-datomize-test (byte-array [(byte 1) (byte 2)]))
+  (round-trip-datomize-test [1 2 3 {:a {:aa [1 2 3]} :b :c :d "Hi there"} 4 5 6]))
+
 
 (deftest test-edenize
   (round-trip-edenize-test 23)
@@ -154,6 +150,7 @@
   (round-trip-edenize-test [])
   (round-trip-edenize-test [1])
   (round-trip-edenize-test [1 2 3])
+  (round-trip-edenize-test [1 nil 3])
   (round-trip-edenize-test [1 2 [11 22 33] 3])
   (round-trip-edenize-test :a)
   (round-trip-edenize-test [[[-0.1]]])
@@ -165,8 +162,8 @@
 ;; Update tests
 
 (defn update [dbc attribute-fn initial-value subsequent-value]
-  (let [initial-entity (marshal-test-entity dbc attribute-fn initial-value)
-        result-entity (marshal-test-entity dbc attribute-fn subsequent-value :id (:db/id initial-entity))]
+  (let [initial-entity (datomize-test-entity dbc attribute-fn initial-value)
+        result-entity (datomize-test-entity dbc attribute-fn subsequent-value :id (:db/id initial-entity))]
     ((attribute-fn subsequent-value) (undatomize result-entity))))
 
 (defn update-test
@@ -179,7 +176,8 @@
 (deftest test-update-via-datomize
 
   (testing "map update-via-datomize"
-    (update-test datomization-test-attribute {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
+    (update-test datomization-test-attribute
+                 {:same "stays the same", :old "is retracted", :different "gets changed" :nested {:a 1 :b 2 :c 3}}
                  {:same "stays the same", :new "is added", :different "see, now different!" :nested {:a 1 :b 4 :d 5} }))
 
   (testing "updating a byte-array"
@@ -277,6 +275,7 @@
                     (pprint garbage))
                   (and (= [] garbage)
                        (equivalent? value result)))))
+
 (defspec quickcheck-round-trip-via-datomize 30 prop-round-trip-via-datomize)
 
 (def prop-update-via-datomize

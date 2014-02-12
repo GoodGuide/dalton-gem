@@ -3,30 +3,57 @@
   (:require [datomic.api :as d :refer [q]]
             [datomizer.datoms :refer :all]
             [datomizer.utility.byte-array :refer [byte-array-class]]
+            [datomizer.utility.debug :refer :all]
             [datomizer.utility.misc :refer [ref-type]]))
 
-(defn attribute-for-value
+
+(defmulti attribute-for-value
   "Datomizer attribute to use for an element value."
+  class)
+
+(defmethod attribute-for-value nil [_]
+  :dmzr.element.value/nil)
+
+(defmethod attribute-for-value java.lang.String [_]
+  :dmzr.element.value/string)
+
+(defmethod attribute-for-value java.lang.Long [_]
+  :dmzr.element.value/long)
+
+(defmethod attribute-for-value java.lang.Float [_]
+  :dmzr.element.value/float)
+
+(defmethod attribute-for-value java.lang.Double [_]
+  :dmzr.element.value/double)
+
+(defmethod attribute-for-value java.lang.Boolean [_]
+  :dmzr.element.value/boolean)
+
+(defmethod attribute-for-value java.util.Date [_]
+  :dmzr.element.value/instant)
+
+(defmethod attribute-for-value clojure.lang.Keyword [_]
+  :dmzr.element.value/keyword)
+
+(defmethod attribute-for-value java.util.List [_]
+  :dmzr.element.value/vector)
+
+(defmethod attribute-for-value java.util.Map [_]
+  :dmzr.element.value/map)
+
+(defmethod attribute-for-value java.math.BigDecimal [_]
+  :dmzr.element.value/bigdec)
+
+(defmethod attribute-for-value java.math.BigInteger [_]
+  :dmzr.element.value/bigint)
+
+(defmethod attribute-for-value byte-array-class [_]
+  :dmzr.element.value/bytes)
+
+(defmethod attribute-for-value :default
   [value]
-  (if (nil? value)
-    :dmzr.element.value/nil
-    (condp instance? value
-      java.lang.String :dmzr.element.value/string
-      java.lang.Long :dmzr.element.value/long
-      java.lang.Float :dmzr.element.value/float
-      java.lang.Double :dmzr.element.value/double
-      java.lang.Boolean :dmzr.element.value/boolean
-      java.util.Date :dmzr.element.value/instant
-      clojure.lang.Keyword :dmzr.element.value/keyword
-      java.util.List :dmzr.element.value/vector
-      java.util.Map :dmzr.element.value/map
-      java.math.BigDecimal :dmzr.element.value/bigdec
-      java.math.BigInteger :dmzr.element.value/bigint
-      byte-array-class :dmzr.element.value/bytes
-      ;; :dmzr.element.value/fn
-      ;; :dmzr.element.value/ref
-      (throw (java.lang.IllegalArgumentException.
-              (str "Marshalling not supported for type " (class value)))))))
+  (throw (java.lang.IllegalArgumentException.
+          (str "Marshalling not supported for type " (class value)))))
 
 
 (defrecord Context [operation   ; What operation we're currently performing: :db/add or :db/retract
@@ -36,7 +63,7 @@
                     attribute]) ; Attribute on the entity which will point to this value.
 
 (defmulti encode
-  "Encode a value as datoms.  Returns a pair of values: the to assign to
+  "Encode a value as datoms.  Returns a pair of values: the values to assign to
   the parent attribute and a vec of datoms to transact."
   (fn [context value-to-encode]
     (ref-type (:db context) (:attribute context))))
@@ -94,7 +121,7 @@
     nil nil))
 
 (defn encode-value
-  "Encode a value as alist of values/references and datoms to add or
+  "Encode a value as a list of values/references and datoms to add or
   retract from the current context."
   [context value]
   (let [[encoded-value datoms] (encode context value)
@@ -103,7 +130,8 @@
      (concat datoms
              (if (sequential? encoded-value)
                (map (fn [value]
-                      [(:operation context) (:id context) value-attribute value]) encoded-value)
+                      [(:operation context) (:id context) value-attribute value])
+                    encoded-value)
                [[(:operation context) (:id context) value-attribute encoded-value]]))]))
 
 (defn encode-pair
@@ -134,7 +162,8 @@
   [context value]
   (if (empty? value)
     (encode-empty context)
-    (condense-elements (map (fn [[k, v]] (encode-pair context :dmzr.element.map/key k v))
+    (condense-elements (map (fn [[k, v]]
+                              (encode-pair context :dmzr.element.map/key k v))
                             value))))
 
 (defmethod encode :dmzr.type/vector [context value]
@@ -150,7 +179,7 @@
 (defmethod encode :dmzr.type/edn [context value]
   [(pr-str value) []])
 
-(defmethod encode nil [_ value]
+(defmethod encode nil [_ value] ; attribute is not annotated with a datomizer type.
   (if (nil? value)
     [:NIL []]
     [value []]))
@@ -164,7 +193,7 @@
   [db entity & {:keys [partition] :or {partition :db.part/user}}]
   (let [id (:db/id entity)
         data (dissoc entity :db/id)
-        context (map->Context {:db db, :operation :db/add, :partition partition, :id id})]
-    (let [retractions (rehearse-transaction db [[:db.fn/retractEntity id]])
-          additions (map (partial resolve-idents db) (encode-data context data))]
-      (remove-conflicts db additions retractions))))
+        context (map->Context {:db db, :operation :db/add, :partition partition, :id id})
+        retractions (rehearse-transaction db [[:db.fn/retractEntity id]])
+        additions (map (partial resolve-idents db) (encode-data context data))]
+    (remove-conflicts db additions retractions)))

@@ -29,70 +29,56 @@
 
 (declare decode)
 
-(defn decode-element
+(defn element->pair
   "Decode a datomized collection element. Returns a key value pair."
   [element]
-  (let [key (element-key element)
-        value-attribute (element-value-attribute element)
-        value (value-attribute element)]
-    [key (decode value-attribute value)]))
-
-(defn decode-variant
-  "Decode a datomized variant value."
-  [element]
-  (let [value-attribute (element-value-attribute element)
-        value (value-attribute element)]
-    (if (= :dmzr.element.value/nil value-attribute)
-      nil
-      value)))
+  [(element-key element) (decode element (element-value-attribute element))])
 
 (defn empty-datomized-container?
   "Does this value represent and empty container?"
   [value]
-  (and (coll? value) (some :dmzr/empty value)))
+  (some :dmzr/empty value))
 
-(defn decode-map
-  "Decode a datomized map."
-  [elements]
-  (if (empty-datomized-container? elements)
+(defmulti decode
+  "Decode an entity's attribute value."
+  (fn [entity key] (ref-type (.db entity) key)))
+
+(defmethod decode :dmzr.type/map
+  [entity key]
+  (if (empty-datomized-container? (key entity))
     {}
-    (->> elements
-         (mapcat decode-element)
+    (->> (key entity)
+         (mapcat element->pair)
          (apply hash-map))))
 
-(defn decode-vector
-  "Decode a datomized vector."
-  [elements]
-  (if (empty-datomized-container? elements)
+(defmethod decode :dmzr.type/vector
+  [entity key]
+    (if (empty-datomized-container? (key entity))
     []
-    (->> elements
-         (map decode-element)
+    (->> (key entity)
+         (map element->pair)
          (sort-by first)
          (mapv last))))
 
-(defn decode
-  "Decode a value."
-  [key value]
-  (case key
-    (:dmzr.element.value/map) (decode-map value)
-    (:dmzr.element.value/vector) (decode-vector value)
-    (:dmzr.element.value/nil) nil
-    value))
-
-(defn undatomize-attribute
-  "Decode an entity's attribute value."
+(defmethod decode :dmzr.type/variant
   [entity key]
-  (let [value (get entity (str key))]
-    (case (ref-type (.db entity) key)
-      (:dmzr.type/map) (decode-map value)
-      (:dmzr.type/vector) (decode-vector value)
-      (:dmzr.type/variant) (decode-variant value)
-      (:dmzr.type/edn) (clojure.edn/read-string value)
-      (when-not (= :dmzr.element.value/nil key) value))))
+  (if (= :dmzr.element.value/nil (element-value-attribute (key entity)))
+    nil
+    (element-value (key entity))))
+
+(defmethod decode :dmzr.type/edn
+  [entity key]
+  (clojure.edn/read-string (key entity)))
+
+(defmethod decode :default
+  [entity key]
+  (if (= :dmzr.element.value/nil key)
+    nil
+    (key entity)))
 
 (defn undatomize
   "Decode a datomized entity."
   [entity]
   (->> (conj (keys entity) :db/id)
-       (mapcat (fn [key] [key (undatomize-attribute entity key)]))
+       (mapcat (fn [key] [key (decode entity key)]))
        (apply hash-map )))
