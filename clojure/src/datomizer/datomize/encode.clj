@@ -119,7 +119,7 @@
   [:db/add id key-attribute k])
 
 (defn encode-pair
-  "Encode a key/value or index/value pairs as a list of datoms"
+  "Encode a key/value or index/value pairs as datoms."
   [db collection-id attribute k v]
   (let [key-attribute ((ref-type db attribute) key-attributes)
         element-id (determine-element-id db collection-id attribute key-attribute k)]
@@ -133,8 +133,7 @@
      [:db/add id attribute element-id]]))
 
 (defmulti encode-value
-  "Encode a value as datoms.
-  the parent attribute and a vec of datoms to transact."
+  "Encode a value as datoms."
   (fn [db id attribute value-to-encode]
     (ref-type db attribute)))
 
