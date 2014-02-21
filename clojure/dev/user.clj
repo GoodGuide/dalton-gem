@@ -21,7 +21,7 @@
    ))
 
 (def system nil)
-(def dbc nil)
+(def conn nil)
 
 (defn init
   "Constructs the current development system."
@@ -33,7 +33,7 @@
   "Starts the current development system."
   []
   (alter-var-root #'system system/start)
-  (alter-var-root #'dbc (fn [_] @(:dbc system))))
+  (alter-var-root #'conn (fn [_] @(:conn system))))
 
 (defn rebuild-database
   "Replace the database for the current development system."

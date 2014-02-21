@@ -8,23 +8,23 @@
   "Returns a new instance of the application"
   [& {:keys [db-uri]}]
    {:db-uri db-uri
-   :dbc (atom nil)})
+   :conn (atom nil)})
 
 (defn start
   "Ensure database exists and connect to it."
   [system]
   (d/create-database (:db-uri system))
-  (reset! (:dbc system) (d/connect (:db-uri system)))
-  (dzs/load-datomizer-schema @(:dbc system))
-  (dzs/load-datomizer-functions @(:dbc system))
-  (dzt/load-datomizer-test-schema @(:dbc system))
+  (reset! (:conn system) (d/connect (:db-uri system)))
+  (dzs/load-datomizer-schema @(:conn system))
+  (dzs/load-datomizer-functions @(:conn system))
+  (dzt/load-datomizer-test-schema @(:conn system))
   system)
 
 (defn stop
   "Disconnect from database."
   [system]
-  (if @(:dbc system) (d/release @(:dbc system)))
-  (reset! (:dbc system) nil)
+  (if @(:conn system) (d/release @(:conn system)))
+  (reset! (:conn system) nil)
   system)
 
 (defn rebuild-database!

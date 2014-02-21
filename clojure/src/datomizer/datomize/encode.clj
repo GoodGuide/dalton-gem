@@ -55,9 +55,6 @@
   (throw (java.lang.IllegalArgumentException.
           (str "Marshalling not supported for type " (class value)))))
 
-
-
-
 (defn tempid-from-same-partition [db id]
   (d/tempid (d/part (d/entid db id))))
 

@@ -4,16 +4,16 @@
 
 (defn load-datomizer-schema
   "Load the schema used by datomizer."
-  [dbc]
-  (load-datoms-from-edn-resource-file dbc "datomizer-schema.edn"))
+  [conn]
+  (load-datoms-from-edn-resource-file conn "datomizer-schema.edn"))
 
 (defn load-datomizer-functions
   "Load datomizer functions.  Requires datomizer jar in transactor lib
   directory."
-  [dbc]
-  (load-datoms-from-edn-resource-file dbc "datomizer-functions.edn"))
+  [conn]
+  (load-datoms-from-edn-resource-file conn "datomizer-functions.edn"))
 
 (comment
   ;; Use like this:
-  @(d/transact dbc [[:dmzr/datomize {:db/id (d/tempid :db.part/user) :test/map {:a 1}}]])
-  (undatomize (d/entity (db dbc) 17592186046111)))
+  @(d/transact conn [[:dmzr/datomize {:db/id (d/tempid :db.part/user) :test/map {:a 1}}]])
+  (undatomize (d/entity (db conn) 17592186046111)))

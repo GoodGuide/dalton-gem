@@ -55,8 +55,8 @@
     :dmzr.ref/type :dmzr.type/edn
     :db.install/_attribute :db.part/db}])
 
-(defn load-datomizer-test-schema [dbc]
-  (d/transact dbc test-schema))
+(defn load-datomizer-test-schema [conn]
+  (d/transact conn test-schema))
 
 (defonce test-database (atom nil))
 
@@ -68,17 +68,17 @@
     (d/delete-database test-database-uri)
     (reset! test-database nil)))
 
-(defn fresh-dbc
+(defn fresh-conn
   "Create a fresh database for the test"
   []
   (delete-test-database)
   (d/create-database test-database-uri)
-  (let [dbc (d/connect test-database-uri)]
-    (load-datomizer-schema dbc)
-    (load-datomizer-functions dbc)
-    (load-datomizer-test-schema dbc)
-    (reset! test-database dbc)
-    dbc))
+  (let [conn (d/connect test-database-uri)]
+    (load-datomizer-schema conn)
+    (load-datomizer-functions conn)
+    (load-datomizer-test-schema conn)
+    (reset! test-database conn)
+    conn))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,32 +96,32 @@
   [_]
   :test/edn)
 
-(defn datomize-test-entity [dbc attribute-fn value & {:keys [id]}]
+(defn datomize-test-entity [conn attribute-fn value & {:keys [id]}]
   (let [id (or id (d/tempid :db.part/user))
         entity-data {:db/id id
                     :db/doc "Test entity."
                     (attribute-fn value) value}
-        tx-result @(d/transact dbc [[:dmzr/datomize entity-data]])
+        tx-result @(d/transact conn [[:dmzr/datomize entity-data]])
         entity-id (if (number? id) id (d/resolve-tempid (:db-after tx-result) (:tempids tx-result) id))
         entity (d/entity (:db-after tx-result) entity-id)]
     (d/touch entity)))
 
 (defn round-trip
   "Store, then retrieve a value to/from Datomic using datomization."
-  [dbc attribute-fn value]
-  (let [entity (datomize-test-entity dbc attribute-fn value)
+  [conn attribute-fn value]
+  (let [entity (datomize-test-entity conn attribute-fn value)
         data (undatomize entity)]
     ((attribute-fn value) data)))
 
 (defn round-trip-datomize-test
   "Test that a value is stored and retrieved from Datomic using datomization."
   [value]
-  (is (equivalent? value (round-trip (fresh-dbc) datomization-test-attribute value))))
+  (is (equivalent? value (round-trip (fresh-conn) datomization-test-attribute value))))
 
 (defn round-trip-edenize-test
   "Test that a value is stored and retrieved from Datomic using datomization."
   [value]
-  (is (equivalent? value (round-trip (fresh-dbc) edenization-test-attribute value))))
+  (is (equivalent? value (round-trip (fresh-conn) edenization-test-attribute value))))
 
 (deftest test-datomize
   (round-trip-datomize-test 23)
@@ -161,17 +161,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update tests
 
-(defn update [dbc attribute-fn initial-value subsequent-value]
-  (let [initial-entity (datomize-test-entity dbc attribute-fn initial-value)
-        result-entity (datomize-test-entity dbc attribute-fn subsequent-value :id (:db/id initial-entity))]
+(defn update [conn attribute-fn initial-value subsequent-value]
+  (let [initial-entity (datomize-test-entity conn attribute-fn initial-value)
+        result-entity (datomize-test-entity conn attribute-fn subsequent-value :id (:db/id initial-entity))]
     ((attribute-fn subsequent-value) (undatomize result-entity))))
 
 (defn update-test
   "Test that a value stored in Datomic can be updated (without creating malformed elements)."
   [attribute-fn initial-value subsequent-value]
-  (let [dbc (fresh-dbc)]
-    (is (equivalent? subsequent-value (update dbc attribute-fn initial-value subsequent-value)))
-    (is (= [] (invalid-elements (db dbc))))))
+  (let [conn (fresh-conn)]
+    (is (equivalent? subsequent-value (update conn attribute-fn initial-value subsequent-value)))
+    (is (= [] (invalid-elements (db conn))))))
 
 (deftest test-update-via-datomize
 
@@ -244,22 +244,22 @@
 
 (deftest test-ref-type
   (testing "with an attribute representing a map"
-    (let [dbc (fresh-dbc)
-          tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
+    (let [conn (fresh-conn)
+          tx-result @(d/transact conn [{:db/id (d/tempid :db.part/user)
                                        :test/map {:db/id (d/tempid :db.part/user)
                                                   :dmzr/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
-          entity (d/entity (db dbc) entity-id)]
-      (is (= :dmzr.type/map (ref-type (db dbc) :test/map)))))
+          entity (d/entity (db conn) entity-id)]
+      (is (= :dmzr.type/map (ref-type (db conn) :test/map)))))
 
   (testing "with an attribute representing a vector"
-    (let [dbc (fresh-dbc)
-          tx-result @(d/transact dbc [{:db/id (d/tempid :db.part/user)
+    (let [conn (fresh-conn)
+          tx-result @(d/transact conn [{:db/id (d/tempid :db.part/user)
                                          :test/vector {:db/id (d/tempid :db.part/user)
                                                   :dmzr/empty true}}])
           entity-id (first (vals (:tempids tx-result)))
-          entity (d/entity (db dbc) entity-id)]
-      (is (= :dmzr.type/vector (ref-type (db dbc) :test/vector))))))
+          entity (d/entity (db conn) entity-id)]
+      (is (= :dmzr.type/vector (ref-type (db conn) :test/vector))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -267,9 +267,9 @@
 
 (def prop-round-trip-via-datomize
   (prop/for-all [value datomizable-value]
-                (let [dbc (fresh-dbc)
-                      result (round-trip dbc datomization-test-attribute value)
-                      garbage (invalid-elements (db dbc))]
+                (let [conn (fresh-conn)
+                      result (round-trip conn datomization-test-attribute value)
+                      garbage (invalid-elements (db conn))]
                   (when-not (= 0 (count garbage))
                     (print "invalid elements: ")
                     (pprint garbage))
@@ -281,9 +281,9 @@
 (def prop-update-via-datomize
   (prop/for-all [initial-value datomizable-value
                  subsequent-value datomizable-value]
-                (let [dbc (fresh-dbc)
-                      result (update dbc datomization-test-attribute initial-value subsequent-value)
-                      garbage (invalid-elements (db dbc))]
+                (let [conn (fresh-conn)
+                      result (update conn datomization-test-attribute initial-value subsequent-value)
+                      garbage (invalid-elements (db conn))]
                   (when-not (= 0 (count garbage))
                     (print "invalid elements: ")
                     (pprint garbage))
@@ -294,8 +294,8 @@
 
 (def prop-round-trip-via-edenize
   (prop/for-all [value edenizable-value]
-                (let [dbc (fresh-dbc)
-                      result (round-trip dbc edenization-test-attribute value)]
+                (let [conn (fresh-conn)
+                      result (round-trip conn edenization-test-attribute value)]
                   (equivalent? value result))))
 
 (defspec quickcheck-round-trip-via-edenize 30 prop-round-trip-via-edenize)
@@ -303,8 +303,8 @@
 (def prop-update-via-edenize
   (prop/for-all [initial-value edenizable-value
                  subsequent-value edenizable-value]
-                (let [dbc (fresh-dbc)
-                      result (update dbc edenization-test-attribute initial-value subsequent-value)]
+                (let [conn (fresh-conn)
+                      result (update conn edenization-test-attribute initial-value subsequent-value)]
                   (equivalent? subsequent-value result))))
 
 (defspec quickcheck-update-via-edenize 30 prop-update-via-edenize)

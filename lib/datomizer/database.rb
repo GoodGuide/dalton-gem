@@ -19,7 +19,7 @@ module Datomizer
       d
     end
 
-    attr_reader :uri, :dbc, :db
+    attr_reader :uri, :conn, :db
 
     def create
       Peer.createDatabase(uri) or
@@ -32,18 +32,18 @@ module Datomizer
     end
 
     def connect
-      @dbc = Peer.connect(uri) or
+      @conn = Peer.connect(uri) or
         raise "Unable to connect to database at \"#{uri}\"."
       refresh
     end
 
     def refresh
-      @db = @dbc.db
+      @db = @conn.db
     end
 
     def transact(datoms)
       data = self.class.convert_datoms(datoms)
-      result = TransactionResult.new(@dbc.transact(data).get)
+      result = TransactionResult.new(@conn.transact(data).get)
       @db = result.db_after
       Translation.from_clj(result)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
