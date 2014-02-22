@@ -81,13 +81,6 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :dmzr.element.value/fn
-  :db/valueType :db.type/fn
-  :db/cardinality :db.cardinality/one
-  :db/doc "Function value of vector, map, or variant element."
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
   :db/ident :dmzr.element.value/instant
   :db/valueType :db.type/instant
   :db/cardinality :db.cardinality/one
@@ -106,13 +99,6 @@
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
   :db/doc "Long value of vector, map, or variant element."
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :dmzr.element.value/ref
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/one
-  :db/doc "Ref value of vector, map, or variant element."
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
