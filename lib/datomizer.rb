@@ -10,6 +10,7 @@ require 'zweikopf'
 require_relative('datomizer/database')
 require_relative('datomizer/entity')
 require_relative('datomizer/transaction_result')
+require_relative('datomizer/attribute')
 require_relative('datomizer/utility')
 require_relative('datomizer/translation')
 require_relative('datomizer/datomization')

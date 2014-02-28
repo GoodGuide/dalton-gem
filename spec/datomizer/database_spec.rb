@@ -116,7 +116,20 @@ describe Datomizer::Database do
     end
   end
 
-
+  describe "#attribute" do
+    let(:attribute) { d.attribute(:'db/doc') }
+    it "retrieves an attribute definition" do
+      expect(attribute.hasAVET).to eq(false)
+      expect(attribute.hasFulltext).to eq(true)
+      expect(attribute.hasNoHistory).to eq(false)
+      expect(attribute.id).to be_a(Fixnum)
+      expect(attribute.ident).to eq(:'db/doc')
+      expect(attribute.isComponent).to eq(false)
+      expect(attribute.isIndexed).to eq(false)
+      expect(attribute.unique).to eq(nil)
+      expect(attribute.valueType).to eq(:'db.type/string')
+    end
+  end
 end
 
 

@@ -73,6 +73,10 @@ module Datomizer
       transact([[:'db.fn/retractEntity', entity_id]])
     end
 
+    def attribute(id)
+      Attribute.new(db.attribute(Translation.from_ruby(id)))
+    end
+
     def self.convert_datoms(datoms)
       case datoms
         when Array
