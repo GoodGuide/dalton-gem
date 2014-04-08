@@ -2,58 +2,51 @@
   "Encode entities by datomizing their data-structures."
   (:require [datomic.api :as d :refer [q]]
             [datomizer.datoms :refer :all]
-            [datomizer.utility.byte-array :refer [byte-array-class]]
             [datomizer.utility.debug :refer :all]
             [datomizer.utility.misc :refer [ref-type]]))
 
 
-(defmulti attribute-for-value
-  "Datomizer attribute to use for an element value."
-  class)
+(defprotocol DatomizerValue
+  (attribute-for-value [value] "Datomizer attribute to use for an element value."))
 
-(defmethod attribute-for-value nil [_]
-  :dmzr.element.value/nil)
+(extend-type nil DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/nil))
 
-(defmethod attribute-for-value java.lang.String [_]
-  :dmzr.element.value/string)
+(extend-type java.lang.String DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/string))
 
-(defmethod attribute-for-value java.lang.Long [_]
-  :dmzr.element.value/long)
+(extend-type java.lang.Long DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/long))
 
-(defmethod attribute-for-value java.lang.Float [_]
-  :dmzr.element.value/float)
+(extend-type java.lang.Float DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/float))
 
-(defmethod attribute-for-value java.lang.Double [_]
-  :dmzr.element.value/double)
+(extend-type java.lang.Double DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/double))
 
-(defmethod attribute-for-value java.lang.Boolean [_]
-  :dmzr.element.value/boolean)
+(extend-type java.lang.Boolean DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/boolean))
 
-(defmethod attribute-for-value java.util.Date [_]
-  :dmzr.element.value/instant)
+(extend-type java.util.Date DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/instant))
 
-(defmethod attribute-for-value clojure.lang.Keyword [_]
-  :dmzr.element.value/keyword)
+(extend-type clojure.lang.Keyword DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/keyword))
 
-(defmethod attribute-for-value java.util.List [_]
-  :dmzr.element.value/vector)
+(extend-type java.util.List DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/vector))
 
-(defmethod attribute-for-value java.util.Map [_]
-  :dmzr.element.value/map)
+(extend-type java.util.Map DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/map))
 
-(defmethod attribute-for-value java.math.BigDecimal [_]
-  :dmzr.element.value/bigdec)
+(extend-type java.math.BigDecimal DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/bigdec))
 
-(defmethod attribute-for-value java.math.BigInteger [_]
-  :dmzr.element.value/bigint)
+(extend-type java.math.BigInteger DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/bigint))
 
-(defmethod attribute-for-value byte-array-class [_]
-  :dmzr.element.value/bytes)
-
-(defmethod attribute-for-value :default
-  [value]
-  (throw (java.lang.IllegalArgumentException.
-          (str "Marshalling not supported for type " (class value)))))
+(extend-type (Class/forName "[B") DatomizerValue
+        (attribute-for-value [v] :dmzr.element.value/bytes))
 
 (defn tempid-from-same-partition [db id]
   (d/tempid (d/part (d/entid db id))))

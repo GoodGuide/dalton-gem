@@ -1,10 +1,8 @@
 (ns datomizer.utility.byte-array
-  "Functions for handle byte-arrays more gracefully.")
-
-(def byte-array-class (class (byte-array 1))) ; is there a clojure literal for the byte-array class?
+  "Functions for handling byte-arrays more gracefully.")
 
 (defn seq-if-byte-array [x]
-  (if (instance? byte-array-class x) (seq x) x))
+  (if (instance? (Class/forName "[B") x) (seq x) x))
 
 (defn walk-wrapping-byte-arrays
   "Return a copy of a data structure with all byte-arrays wrapped in seqs (for comparison of contents)."
@@ -16,6 +14,6 @@
   (cond
    (or (nil? actual) (nil? expected)) (and (nil? expected) (nil? actual))
    (coll? expected) (apply = (map walk-wrapping-byte-arrays [expected actual]))
-   (instance? byte-array-class expected) (and (instance? byte-array-class actual)
-                                          (= (seq expected) (seq actual)))
+   (instance? (Class/forName "[B") expected) (and (instance? (Class/forName "[B") actual)
+                                                  (= (seq expected) (seq actual)))
    :else (= expected actual)))
