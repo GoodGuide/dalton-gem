@@ -5,12 +5,11 @@
             [datomic.api :as d :refer [db]]
             [datomizer.datomize.decode :refer :all]
             [datomizer.datomize.encode :refer :all]
-            [datomizer.datomize.setup :refer :all]
             [datomizer.datomize.validation :refer :all]
             [datomizer.test-utility.check :refer [datomizable-value
                                                   edenizable-value]]
+            [datomizer.test-utility.db :refer [test-db-conn]]
             [datomizer.utility.byte-array :refer :all]
-            [datomizer.utility.debug :refer :all]
             [datomizer.utility.misc :refer [ref-type]]
             [simple-check.clojure-test :refer [defspec]]
             [simple-check.properties :as prop]))
@@ -56,29 +55,11 @@
     :db.install/_attribute :db.part/db}])
 
 (defn load-datomizer-test-schema [conn]
-  (d/transact conn test-schema))
+  (d/transact conn test-schema)
+  conn)
 
-(defonce test-database (atom nil))
-
-;; (def test-database-uri "datomic:dev://localhost:4334/datomizer-test")
-(def test-database-uri "datomic:mem://datomizer-test")
-
-(defn delete-test-database []
-  (when @test-database
-    (d/delete-database test-database-uri)
-    (reset! test-database nil)))
-
-(defn fresh-conn
-  "Create a fresh database for the test"
-  []
-  (delete-test-database)
-  (d/create-database test-database-uri)
-  (let [conn (d/connect test-database-uri)]
-    (load-datomizer-schema conn)
-    (load-datomizer-functions conn)
-    (load-datomizer-test-schema conn)
-    (reset! test-database conn)
-    conn))
+(defn fresh-conn []
+  (load-datomizer-test-schema (test-db-conn)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
