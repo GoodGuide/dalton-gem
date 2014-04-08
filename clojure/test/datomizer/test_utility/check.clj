@@ -8,9 +8,9 @@
             [datomizer.datomize.setup :refer :all]
             [datomizer.datomize.validation :refer :all]
             [datomizer.utility.byte-array :refer :all]
-            [simple-check.clojure-test :refer [defspec]]
-            [simple-check.generators :as gen]
-            [simple-check.properties :as prop]))
+            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]))
 
 (def gen-long
   (gen/fmap long gen/nat))

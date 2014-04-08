@@ -11,8 +11,8 @@
             [datomizer.test-utility.db :refer [test-db-conn]]
             [datomizer.utility.byte-array :refer :all]
             [datomizer.utility.misc :refer [ref-type]]
-            [simple-check.clojure-test :refer [defspec]]
-            [simple-check.properties :as prop]))
+            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.properties :as prop]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
