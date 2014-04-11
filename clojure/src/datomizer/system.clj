@@ -23,7 +23,6 @@
 (defn stop
   "Disconnect from database."
   [system]
-  (if @(:conn system) (d/release @(:conn system)))
   (reset! (:conn system) nil)
   system)
 
