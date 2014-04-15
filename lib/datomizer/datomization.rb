@@ -3,19 +3,12 @@ require_relative 'utility'
 module Datomizer
   module Datomization
 
+    Utility.require_clojure('datomizer.datomize.setup')
     Utility.require_clojure('datomizer.datomize.decode')
 
-    def datomizer_schema
-      Utility.read_edn(File.read(File.expand_path("../../../clojure/resources/datomizer-schema.edn", __FILE__)))
-    end
-
-    def datomizer_functions
-      Utility.read_edn(File.read(File.expand_path("../../../clojure/resources/datomizer-functions.edn", __FILE__)))
-    end
-
-    def install_datomization_schema
-      datomizer_schema.each { |definition| transact([definition]) }
-      datomizer_functions.each { |definition| transact([definition]) }
+    def set_up_datomizer
+      Utility.run_clojure_function('datomizer.datomize.setup/load-datomizer-schema', conn)
+      Utility.run_clojure_function('datomizer.datomize.setup/load-datomizer-functions', conn)
     end
 
     def datomize(data)

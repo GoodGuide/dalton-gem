@@ -16,7 +16,7 @@ describe Datomizer::Datomization do
   end
 
   before do
-    d.install_datomization_schema
+    d.set_up_datomizer
 
     d.transact([{:'db/id' => Datomizer::Database.tempid(':db.part/db'),
                  :'db/ident' => :'test/map',

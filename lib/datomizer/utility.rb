@@ -8,8 +8,10 @@ module Datomizer
     module_function
 
     def run_clojure_function(namespaced_function, *arguments)
-      namespace, function = namespaced_function.to_s.split('/', 2)
-      RT.var(namespace, function).fn.invoke(*arguments)
+      namespace, function_name = namespaced_function.to_s.split('/', 2)
+      namespace && function_name or
+        raise ArgumentError, "Namespaced function required. Got: #{namespaced_function.inspect}"
+      RT.var(namespace, function_name).fn.invoke(*arguments)
     end
 
     def run_database_function(db, function_ident, *arguments)
