@@ -3,7 +3,8 @@ defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby" or raise "JRuby required."
 require 'rubygems'
 
 require 'lock_jar'
-LockJar.load
+LockJar.load(File.expand_path('../../Jarfile.lock', __FILE__))
+
 
 require 'zweikopf'
 
