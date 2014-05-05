@@ -3,10 +3,10 @@ java_import "datomic.Peer"
 
 require_relative 'datomization'
 
-module Datomizer
+module Dalton
   class Database
 
-    include Datomizer::Datomization
+    include Dalton::Datomization
 
     def initialize(uri)
       @uri = uri

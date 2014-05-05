@@ -18,7 +18,7 @@ module Zweikopf
   end
 end
 
-module Datomizer
+module Dalton
   module Translation
 
     module_function
@@ -33,7 +33,7 @@ module Datomizer
           when Java::JavaUtil::Set
             Set.new(value.map{|x| from_clj(x)})
           when Java::Datomic::Entity
-            Datomizer::Entity.new(value)
+            Dalton::Entity.new(value)
           else
             value
         end
@@ -45,7 +45,7 @@ module Datomizer
         case value
           when ::Set
             PersistentHashSet.create(value.map{|x| from_ruby(x)})
-          when Datomizer::Entity
+          when Dalton::Entity
             value.datomic_entity
           else
             value

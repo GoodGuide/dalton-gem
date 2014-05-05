@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe Datomizer::Database do
+describe Dalton::Database do
 
   let(:uri) { 'datomic:mem://spec' }
-  let(:d) { Datomizer::Database.new(uri) }
+  let(:d) { Dalton::Database.new(uri) }
 
   before do
     d.create
@@ -20,7 +20,7 @@ describe Datomizer::Database do
     let(:attribute) { :'db/doc' }
     let(:value) { 'This is a test entity.' }
 
-    let!(:transaction_result) { d.transact([{:'db/id' => Datomizer::Database.tempid, attribute => value}]) }
+    let!(:transaction_result) { d.transact([{:'db/id' => Dalton::Database.tempid, attribute => value}]) }
 
     let(:entity_id) { transaction_result.tempids.values.first }
 

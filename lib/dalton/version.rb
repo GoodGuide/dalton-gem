@@ -1,3 +1,3 @@
-module Datomizer
+module Dalton
   VERSION = "0.0.1"
 end

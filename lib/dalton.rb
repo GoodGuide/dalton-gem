@@ -7,21 +7,21 @@ LockJar.load
 
 require 'zweikopf'
 
-require_relative('datomizer/database')
-require_relative('datomizer/entity')
-require_relative('datomizer/transaction_result')
-require_relative('datomizer/attribute')
-require_relative('datomizer/utility')
-require_relative('datomizer/translation')
-require_relative('datomizer/datomization')
+require_relative('dalton/database')
+require_relative('dalton/entity')
+require_relative('dalton/transaction_result')
+require_relative('dalton/attribute')
+require_relative('dalton/utility')
+require_relative('dalton/translation')
+require_relative('dalton/datomization')
 
-module Datomizer
+module Dalton
 
 end
 
 class Object
   def to_edn
-    Datomizer::Utility.to_edn(self)
+    Dalton::Utility.to_edn(self)
   end
 end
 

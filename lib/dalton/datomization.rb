@@ -1,6 +1,6 @@
 require_relative 'utility'
 
-module Datomizer
+module Dalton
   module Datomization
 
     Utility.require_clojure('datomizer.datomize.setup')

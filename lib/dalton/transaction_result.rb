@@ -1,6 +1,6 @@
 java_import "datomic.Peer"
 
-module Datomizer
+module Dalton
   class TransactionResult
     def initialize(result_map)
       @result_map = result_map

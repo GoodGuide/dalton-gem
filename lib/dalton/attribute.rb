@@ -1,4 +1,4 @@
-module Datomizer
+module Dalton
   class Attribute
     def initialize(datomic_attribute)
       @datomic_attribute = datomic_attribute

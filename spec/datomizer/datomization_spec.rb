@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe Datomizer::Datomization do
+describe Dalton::Datomization do
 
   let(:uri) { 'datomic:mem://spec' }
-  let(:d) { Datomizer::Database.new(uri) }
+  let(:d) { Dalton::Database.new(uri) }
 
   before do
     d.create
@@ -18,7 +18,7 @@ describe Datomizer::Datomization do
   before do
     d.set_up_datomizer
 
-    d.transact([{:'db/id' => Datomizer::Database.tempid(':db.part/db'),
+    d.transact([{:'db/id' => Dalton::Database.tempid(':db.part/db'),
                  :'db/ident' => :'test/map',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/many',
@@ -27,7 +27,7 @@ describe Datomizer::Datomization do
                  :'dmzr.ref/type' => :'dmzr.type/map',
                  :'db.install/_attribute' => :'db.part/db',
                 },
-                {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
+                {:'db/id' => Dalton::Database.tempid(':db.part/db'),
                  :'db/ident' => :'test/vector',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/many',
@@ -36,7 +36,7 @@ describe Datomizer::Datomization do
                  :'dmzr.ref/type' => :'dmzr.type/vector',
                  :'db.install/_attribute' => :'db.part/db',
                 },
-                {:'db/id' => Datomizer::Database.tempid(':db.part/db'),
+                {:'db/id' => Dalton::Database.tempid(':db.part/db'),
                  :'db/ident' => :'test/edn',
                  :'db/valueType' => :'db.type/string',
                  :'db/cardinality' => :'db.cardinality/one',
@@ -47,7 +47,7 @@ describe Datomizer::Datomization do
 
   shared_examples_for "it round trips via datomization" do |attribute|
     it "should store and retrieve the value" do
-      id = Datomizer::Database.tempid
+      id = Dalton::Database.tempid
       original_data = {:'db/id' => id, attribute => value}
       real_id = d.datomize(original_data)
       round_tripped_data = d.undatomize(real_id)

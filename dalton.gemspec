@@ -1,16 +1,16 @@
 # -*- encoding: utf-8 -*-
 $:.push File.expand_path("../lib", __FILE__)
-require "datomizer/version"
+require "dalton/version"
 
 Gem::Specification.new do |s|
-  s.name        = "datomizer"
-  s.version     = Datomizer::VERSION
+  s.name        = "dalton"
+  s.version     = Dalton::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Brian Jenkins", "Joshua Bates"]
   s.email       = ["brian@brianjenkins.org", "joshua@goodguide.com"]
   s.homepage    = ""
   s.summary     = %q{A thin Datomic driver for JRuby}
-  s.description = %q{Datomizer attempts to give low level access to Datomic from JRuby}
+  s.description = %q{Dalton attempts to give low level access to Datomic from JRuby}
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")

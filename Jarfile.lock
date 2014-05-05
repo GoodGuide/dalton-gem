@@ -19,6 +19,7 @@ groups:
     - org.apache.tomcat:tomcat-jdbc:jar:7.0.27
     - org.apache.tomcat:tomcat-juli:jar:7.0.27
     - org.clojure:clojure:jar:1.5.1
+    - org.clojure:test.check:jar:0.5.7
     - org.clojure:tools.cli:jar:0.2.2
     - org.codehaus.janino:commons-compiler-jdk:jar:2.6.1
     - org.codehaus.janino:commons-compiler:jar:2.6.1
@@ -30,7 +31,6 @@ groups:
     - org.slf4j:slf4j-api:jar:1.7.5
     - org.slf4j:slf4j-nop:jar:1.7.5
     - postgresql:postgresql:jar:9.1-901.jdbc4
-    - reiddraper:simple-check:jar:0.5.6
     - spy:spymemcached:jar:2.8.9
     artifacts:
     - jar:com.datomic:datomic-pro:jar:0.9.4532:
@@ -63,7 +63,7 @@ groups:
           com.google.guava:guava:jar:14.0.1: {}
     - jar:datomizer:datomizer:jar:0.1.0-SNAPSHOT:
         transitive:
-          reiddraper:simple-check:jar:0.5.6: {}
+          org.clojure:test.check:jar:0.5.7: {}
 remote_repositories:
 - https://repository.jboss.org/nexus/content/groups/public-jboss
 - https://files.couchbase.com/maven2/

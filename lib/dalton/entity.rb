@@ -1,4 +1,4 @@
-module Datomizer
+module Dalton
   class Entity
 
     include Enumerable
@@ -56,7 +56,7 @@ module Datomizer
 
     def decode(value)
       case value
-        when Datomizer::Entity
+        when Dalton::Entity
           value.to_h
         when Set
           Set.new(value.map{|x| decode(x)})

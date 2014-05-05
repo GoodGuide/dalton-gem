@@ -2,7 +2,7 @@ java_import "clojure.lang.Keyword"
 java_import "clojure.lang.PersistentArrayMap"
 java_import "clojure.lang.RT"
 
-module Datomizer
+module Dalton
   module Utility
 
     module_function

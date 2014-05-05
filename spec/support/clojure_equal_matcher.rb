@@ -2,10 +2,10 @@ require 'rspec/matchers'
 
 module RSpec
   module Matchers
-    module Datomizer
+    module Dalton
       class ClojureEqual < BuiltIn::BaseMatcher
         def match(expected, actual)
-          ::Datomizer::Utility.clojure_equal?(actual, expected)
+          ::Dalton::Utility.clojure_equal?(actual, expected)
         end
 
         def failure_message_for_should
@@ -45,7 +45,7 @@ MESSAGE
     end
 
     def clojure_equal(expected)
-      Datomizer::ClojureEqual.new(expected)
+      Dalton::ClojureEqual.new(expected)
     end
 
   end

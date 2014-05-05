@@ -1,15 +1,15 @@
 require 'spec_helper'
 
-describe Datomizer::Entity do
+describe Dalton::Entity do
 
   let(:uri) { 'datomic:mem://spec' }
-  let(:d) { Datomizer::Database.new(uri) }
+  let(:d) { Dalton::Database.new(uri) }
 
   before do
     d.create
     d.connect
     d.refresh
-    d.transact([{:'db/id' => Datomizer::Database.tempid(':db.part/db'),
+    d.transact([{:'db/id' => Dalton::Database.tempid(':db.part/db'),
                  :'db/ident' => :'test/stuff',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/one',
@@ -25,9 +25,9 @@ describe Datomizer::Entity do
 
   describe '#to_h' do
     let!(:transaction_result) {
-      d.transact([{:'db/id' => Datomizer::Database.tempid,
+      d.transact([{:'db/id' => Dalton::Database.tempid,
                    :'db/doc' => 'foo',
-                   :'test/stuff' => {:'db/id' => Datomizer::Database.tempid,
+                   :'test/stuff' => {:'db/id' => Dalton::Database.tempid,
                                      :'db/doc' => 'bar'}}
                  ])
 
