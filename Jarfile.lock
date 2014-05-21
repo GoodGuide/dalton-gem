@@ -1,5 +1,5 @@
 ---
-version: 0.7.5
+version: 0.8.0
 groups:
   default:
     dependencies:
@@ -9,10 +9,10 @@ groups:
     - com.fasterxml.jackson.core:jackson-annotations:jar:2.1.1
     - com.fasterxml.jackson.core:jackson-core:jar:2.1.1
     - com.fasterxml.jackson.core:jackson-databind:jar:2.1.1
+    - com.goodguide:datomizer:jar:0.1.0
     - com.google.guava:guava:jar:16.0.1
     - com.h2database:h2:jar:1.3.171
     - commons-codec:commons-codec:jar:1.3
-    - datomizer:datomizer:jar:0.1.0-SNAPSHOT
     - io.netty:netty:jar:3.6.7.Final
     - org.apache.httpcomponents:httpclient:jar:4.2
     - org.apache.httpcomponents:httpcore:jar:4.2
@@ -71,7 +71,7 @@ groups:
           org.clojure:tools.cli:jar:0.2.2: {}
           com.h2database:h2:jar:1.3.171: {}
           spy:spymemcached:jar:2.8.9: {}
-    - jar:datomizer:datomizer:jar:0.1.0-SNAPSHOT:
+    - jar:com.goodguide:datomizer:jar:0.1.0:
         transitive:
           org.clojure:test.check:jar:0.5.7: {}
 remote_repositories:

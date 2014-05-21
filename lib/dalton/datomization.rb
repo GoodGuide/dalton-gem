@@ -3,12 +3,12 @@ require_relative 'utility'
 module Dalton
   module Datomization
 
-    Utility.require_clojure('datomizer.datomize.setup')
-    Utility.require_clojure('datomizer.datomize.decode')
+    Utility.require_clojure('goodguide.datomizer.datomize.setup')
+    Utility.require_clojure('goodguide.datomizer.datomize.decode')
 
     def set_up_datomizer
-      Utility.run_clojure_function('datomizer.datomize.setup/load-datomizer-schema', conn)
-      Utility.run_clojure_function('datomizer.datomize.setup/load-datomizer-functions', conn)
+      Utility.run_clojure_function('goodguide.datomizer.datomize.setup/load-datomizer-schema', conn)
+      Utility.run_clojure_function('goodguide.datomizer.datomize.setup/load-datomizer-functions', conn)
     end
 
     def datomize(data)
@@ -18,7 +18,7 @@ module Dalton
 
     def undatomize(id)
       e = entity(id)
-      clojure_data = Utility.run_clojure_function("datomizer.datomize.decode/undatomize", e.datomic_entity)
+      clojure_data = Utility.run_clojure_function("goodguide.datomizer.datomize.decode/undatomize", e.datomic_entity)
       Translation.from_clj(clojure_data)
     end
 
