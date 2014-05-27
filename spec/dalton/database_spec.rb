@@ -85,8 +85,12 @@ describe Dalton::Database do
       let(:entity) { results.first }
 
       it 'runs a query and retrieves entities' do
-        expect(results.size).to eq(1)
+        expect(results.to_a.size).to eq(1)
         expect(entity[attribute]).to eq(value)
+      end
+
+      it 'returns a lazy enumerator' do
+        expect(results).to be_a(Enumerator::Lazy)
       end
     end
 

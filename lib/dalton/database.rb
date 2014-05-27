@@ -65,7 +65,7 @@ module Dalton
     end
 
     def retrieve(query, *args)
-      q(query, *args).map { |result| entity(result.first) }
+      q(query, *args).lazy.map { |result| entity(result.first) }
     end
 
     def retract(entity)
