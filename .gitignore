@@ -3,6 +3,7 @@
 .bundle
 Gemfile.lock
 Jarfile.lock
+/.jbundler
 pkg/*
 
 # Ignore db
