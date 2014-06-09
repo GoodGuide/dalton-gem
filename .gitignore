@@ -2,6 +2,7 @@
 *.gem
 .bundle
 Gemfile.lock
+Jarfile.lock
 pkg/*
 
 # Ignore db
