@@ -48,6 +48,29 @@ module Dalton
       run_clojure_function('clojure.core/pr-str', clojure_data)
     end
 
+    def sym(s)
+      Java::ClojureLang::Symbol.intern(s)
+    end
+
+    def kw(k)
+      Java::ClojureLang::Keyword.intern(k)
+    end
+
+    def list(*items)
+      Dalton::Utility.run_clojure_function("clojure.core/list*", items)
+    end
+
+    def with_meta(value, meta)
+      Dalton::Utility.run_clojure_function("clojure.core/with-meta", value, meta)
+    end
+
+    def meta(value)
+      Dalton::Utility.run_clojure_function("clojure.core/meta", value)
+    end
+
+    def tag(value, tag)
+      with_meta(value, Dalton::Translation.from_ruby(tag: tag))
+    end
   end
 end
 
