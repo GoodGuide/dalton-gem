@@ -1,14 +1,9 @@
 require 'spec_helper'
 
 describe Dalton::Entity do
-
-  let(:uri) { 'datomic:mem://spec' }
-  let(:d) { Dalton::Database.new(uri) }
+  include DatomicContext
 
   before do
-    d.create
-    d.connect
-    d.refresh
     d.transact([{:'db/id' => Dalton::Database.tempid(':db.part/db'),
                  :'db/ident' => :'test/stuff',
                  :'db/valueType' => :'db.type/ref',
@@ -17,10 +12,6 @@ describe Dalton::Entity do
                  :'db/isComponent' => true,
                  :'db.install/_attribute' => :'db.part/db',
                 }])
-  end
-
-  after do
-    d.destroy
   end
 
   describe '#to_h' do

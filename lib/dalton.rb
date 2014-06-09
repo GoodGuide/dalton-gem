@@ -17,7 +17,8 @@ require_relative('dalton/translation')
 require_relative('dalton/datomization')
 
 module Dalton
-
+  class DatomicError < StandardError
+  end
 end
 
 class Object

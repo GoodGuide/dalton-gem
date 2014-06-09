@@ -1,19 +1,7 @@
 require 'spec_helper'
 
 describe Dalton::Datomization do
-
-  let(:uri) { 'datomic:mem://spec' }
-  let(:d) { Dalton::Database.new(uri) }
-
-  before do
-    d.create
-    d.connect
-    d.refresh
-  end
-
-  after do
-    d.destroy
-  end
+  include DatomicContext
 
   before do
     d.set_up_datomizer
