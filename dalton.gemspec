@@ -19,6 +19,4 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'jbundler', '~> 0.5.5'
   s.add_runtime_dependency 'zweikopf', '0.4.0'
-
-  s.extensions = ["Rakefile"]
 end
