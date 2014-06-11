@@ -194,8 +194,8 @@ module Dalton
     def attributes
       out = {}
 
-      self.class.attributes.each do |attr, datomic_attr|
-        out[attr] = entity.get(datomic_attr)
+      self.class.attributes.each do |attr, _|
+        out[attr] = send(attr)
       end
 
       out

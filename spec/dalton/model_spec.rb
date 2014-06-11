@@ -99,7 +99,7 @@ describe Dalton::Model do
         assert { validation_error.is_a? Dalton::Model::ValidationError }
         assert { validation_error.errors.length == 1 }
         assert { validation_error.errors_on(:foo) == ["must not contain the string 'invalid'"] }
-        assert { validation_error.changes.change_in(:foo) == [nil, 'invalid-foo-value'] }
+        assert { validation_error.changes.change_in(:foo) == ['foo-default', 'invalid-foo-value'] }
       end
     end
 
