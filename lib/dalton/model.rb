@@ -17,6 +17,11 @@ module Dalton
       end
     end
 
+    @registry = {}
+    class << self
+      attr_reader :registry
+    end
+
     module ClassMethods
       attr_reader :attributes
       attr_reader :validator
@@ -45,6 +50,13 @@ module Dalton
         EDN
       end
 
+      def interpret_entity(entity)
+        registry_name = entity.get(":#{datomic_type_key}").to_s[1..-1]
+        model = Model.registry.fetch(registry_name) rescue binding.pry
+        raise TypeError.new("No such model #{registry_name.inspect}") unless model
+        model.new(entity)
+      end
+
       def transact(edn)
         connection.transact(edn)
       end
@@ -59,7 +71,10 @@ module Dalton
       end
 
       def namespace(arg=nil)
-        @namespace = arg if arg
+        if arg
+          @namespace = arg
+          Model.registry[datomic_type.to_s] = self
+        end
         @namespace or raise "you must define a namespace for #{self}"
       end
 
@@ -86,6 +101,18 @@ module Dalton
       def attribute(attr, datomic_key=nil)
         datomic_key ||= "#{self.namespace}.#{self.datomic_name}/#{attr.to_s.tr('_', '-')}"
         define_attribute(attr, datomic_key)
+      end
+
+      def referenced(name, opts={})
+        type = opts.fetch(:type) { name } # TODO: pluralize?
+        from_rel = opts.fetch(:from) { self.datomic_name }
+
+        namespace = opts.fetch(:namespace) {
+          type.respond_to?(:namespace) ? type.namespace : self.namespace
+        }
+
+        type = type.datomic_name if type.respond_to? :datomic_name
+        define_attribute name, "#{namespace}.#{type}/_#{from_rel}"
       end
 
       def define_attribute(key, datomic_key)
@@ -140,7 +167,20 @@ module Dalton
 
     def [](key)
       datomic_key = self.class.get_attribute(key)
-      entity.get(datomic_key)
+      interpret_value(entity.get(datomic_key))
+    end
+
+    def interpret_value(value)
+      case value
+      when Enumerable
+        value.lazy.map { |e| interpret_value(e) }
+      when Java::DatomicQuery::EntityMap
+        self.class.interpret_entity(value)
+      when Numeric, String, Symbol, true, false, nil
+        value
+      else
+        raise TypeError.new("unknown value type: #{value.inspect}")
+      end
     end
 
     def attributes
@@ -177,6 +217,11 @@ module Dalton
       include Enumerable
       include Dalton::Utility
 
+      def inspect
+        translated = Translation.from_ruby(all_constraints).to_edn[1..-2]
+        "#<#{self.class.name} ##{db.basisT} :where #{translated}>"
+      end
+
       attr_reader :db, :constraints
       def initialize(db, constraints=[])
         @db = db
@@ -209,7 +254,7 @@ module Dalton
       end
 
       def results
-        query = [:find, sym('?e'), :in, sym('$'), :where, type_constraint, *constraints]
+        query = [:find, sym('?e'), :in, sym('$'), :where, *all_constraints]
         q(query).lazy.map do |el|
           model.new(@db.entity(el.first))
         end
@@ -217,6 +262,10 @@ module Dalton
 
       def type_constraint
         [sym('?e'), model.datomic_type_key, model.datomic_type]
+      end
+
+      def all_constraints
+        [type_constraint, *constraints]
       end
 
       def each(&b)
@@ -246,6 +295,7 @@ module Dalton
     end
 
     class BaseChanger
+      attr_reader :id, :original, :changes, :retractions
       def initialize(id, attrs)
         @id = id
         @original = attrs.dup.freeze
@@ -307,22 +357,36 @@ module Dalton
         model.validator.run_all!(self)
       end
 
-      def interpret_value(value)
-        value # TODO
+      def generate_datom(key, value, &b)
+        case value
+        when Enumerable
+          (original(key) || []).each do |o|
+            yield [:'db/retract', datomic_key(key), o]
+          end
+
+          value.each do |v|
+            generate_datom(key, v, &b)
+          end
+        when Model
+          yield(:'db/id' => @id, datomic_key(key) => value.id)
+        when Numeric, String, Symbol, true, false
+          yield [:'db/add', @id, datomic_key(key), value]
+        else
+          raise TypeError.new("invalid datomic value: #{value.inspect}")
+        end
       end
 
       def generate_datoms(&b)
         return enum_for(:generate_datoms).to_a unless block_given?
 
-        out = {}
-        out[:'db/id'] = @id
-        out[model.datomic_type_key] = model.datomic_type
+        yield [:'db/add', @id, model.datomic_type_key, model.datomic_type]
         @changes.each do |key, new_val|
-          datomic_key = model.get_attribute(key)
-          out[datomic_key] = interpret_value(new_val)
+          generate_datom(key, new_val, &b)
         end
+      end
 
-        yield out
+      def datomic_key(key)
+        model.get_attribute(key)
       end
     end
 

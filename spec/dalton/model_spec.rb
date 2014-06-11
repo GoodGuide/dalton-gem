@@ -23,11 +23,20 @@ describe Dalton::Model do
         :db/valueType :db.type/string
         :db/cardinality :db.cardinality/one
         :db/doc "Bar attribute"
+        :db.install/_attribute :db.part/db}
+
+       {:db/id #db/id[:db.part/db]
+        :db/ident :dalton.sample/parent
+        :db/valueType :db.type/ref
+        :db/cardinality :db.cardinality/one
+        :db/doc "Parent Sample"
         :db.install/_attribute :db.part/db}]
     EDN
 
     attribute :foo
     attribute :bar, 'dalton.sample/bar-custom-key'
+    attribute :parent
+    referenced :children, :type => Sample, :from => :parent
 
     validation do
       validate :foo do |foo|
@@ -119,6 +128,32 @@ describe Dalton::Model do
           by_bar = finder.where(:bar => 'bar-value')
           assert { by_bar.first == model }
         end
+      end
+    end
+
+    describe 'relations' do
+      it 'starts out nil/empty' do
+        assert { model.parent == nil }
+        # TODO this is nil
+        # assert { model.children == [] }
+      end
+
+      it 'sets a one-to-many relation' do
+        next_model = model.change! do |m|
+          m.parent = model
+        end
+
+        assert { next_model.parent == next_model }
+        assert { next_model.children.to_a == [next_model] }
+      end
+
+      it 'sets a many-to-one relation' do
+        next_model = model.change! do |m|
+          m.children = [model]
+        end
+
+        assert { next_model.parent == next_model }
+        assert { next_model.children.to_a == [next_model] }
       end
     end
   end
