@@ -3,6 +3,7 @@ module Dalton
     def self.included(base)
       base.class_eval do
         @attributes = {}
+        @defaults = {}
         @validator = Validator.new(base)
 
         const_set :Finder, Class.new(BaseFinder) {
@@ -24,6 +25,7 @@ module Dalton
 
     module ClassMethods
       attr_reader :attributes
+      attr_reader :defaults
       attr_reader :validator
 
       def schema(edn)
@@ -98,9 +100,14 @@ module Dalton
         :"#{namespace}/type"
       end
 
-      def attribute(attr, datomic_key=nil)
+      def attribute(attr, datomic_key=nil, opts={})
+        if datomic_key.is_a? Hash
+          opts = datomic_key
+          datomic_key = nil
+        end
+
         datomic_key ||= "#{self.namespace}.#{self.datomic_name}/#{attr.to_s.tr('_', '-')}"
-        define_attribute(attr, datomic_key)
+        define_attribute(attr, datomic_key, opts)
       end
 
       def referenced(name, opts={})
@@ -112,11 +119,12 @@ module Dalton
         }
 
         type = type.datomic_name if type.respond_to? :datomic_name
-        define_attribute name, "#{namespace}.#{type}/_#{from_rel}"
+        define_attribute name, "#{namespace}.#{type}/_#{from_rel}", :default => []
       end
 
-      def define_attribute(key, datomic_key)
+      def define_attribute(key, datomic_key, opts={})
         @attributes[key] = datomic_key
+        @defaults[key] = opts[:default]
 
         define_method(key) { self[key] }
 
@@ -167,7 +175,7 @@ module Dalton
 
     def [](key)
       datomic_key = self.class.get_attribute(key)
-      interpret_value(entity.get(datomic_key))
+      interpret_value(entity.get(datomic_key)) || self.class.defaults.fetch(key)
     end
 
     def interpret_value(value)

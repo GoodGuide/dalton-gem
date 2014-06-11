@@ -33,7 +33,7 @@ describe Dalton::Model do
         :db.install/_attribute :db.part/db}]
     EDN
 
-    attribute :foo
+    attribute :foo, :default => 'foo-default'
     attribute :bar, 'dalton.sample/bar-custom-key'
     attribute :parent
     referenced :children, :type => Sample, :from => :parent
@@ -59,7 +59,6 @@ describe Dalton::Model do
   describe 'basic model' do
     let(:model) do
       Sample.create! do |m|
-        m.foo = 'foo-value'
         m.bar = 'bar-value'
       end
     end
@@ -67,7 +66,7 @@ describe Dalton::Model do
     describe '.create!' do
       it 'creates a model' do
         assert { model.is_a? Sample }
-        assert { model.foo == 'foo-value' }
+        assert { model.foo == 'foo-default' }
         assert { model.bar == 'bar-value' }
       end
     end
@@ -83,7 +82,7 @@ describe Dalton::Model do
         assert { next_model.is_a? Sample }
         assert { next_model.foo == 'new-foo-value' }
         assert { next_model.bar == 'bar-value' }
-        assert { model.foo == 'foo-value' }
+        assert { model.foo == 'foo-default' }
       end
     end
 
@@ -100,7 +99,7 @@ describe Dalton::Model do
         assert { validation_error.is_a? Dalton::Model::ValidationError }
         assert { validation_error.errors.length == 1 }
         assert { validation_error.errors_on(:foo) == ["must not contain the string 'invalid'"] }
-        assert { validation_error.changes.change_in(:foo) == ['foo-value', 'invalid-foo-value'] }
+        assert { validation_error.changes.change_in(:foo) == [nil, 'invalid-foo-value'] }
       end
     end
 
@@ -118,8 +117,8 @@ describe Dalton::Model do
 
       describe '#by_{attribute}' do
         it 'returns the same model' do
-          by_foo = finder.by_foo('foo-value')
-          assert { by_foo.first == model }
+          by_bar = finder.by_bar('bar-value')
+          assert { by_bar.first == model }
         end
       end
 
@@ -134,8 +133,7 @@ describe Dalton::Model do
     describe 'relations' do
       it 'starts out nil/empty' do
         assert { model.parent == nil }
-        # TODO this is nil
-        # assert { model.children == [] }
+        assert { model.children == [] }
       end
 
       it 'sets a one-to-many relation' do
