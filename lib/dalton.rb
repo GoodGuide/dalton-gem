@@ -11,6 +11,7 @@ require_relative('dalton/attribute')
 require_relative('dalton/utility')
 require_relative('dalton/translation')
 require_relative('dalton/datomization')
+require_relative('dalton/model')
 
 module Dalton
   class DatomicError < StandardError
