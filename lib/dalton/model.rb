@@ -159,7 +159,7 @@ module Dalton
       end
 
       def create!(&b)
-        self::Changer.new(Peer.tempid(partition), {}).change!(&b)
+        self::Changer.new(Dalton::Utility.tempid(partition), defaults).change!(&b)
       end
     end
 
