@@ -254,7 +254,6 @@ module Dalton
         entity = @db.entity(id)
 
         unless entity.get(":#{model.datomic_type_key}").to_s[1..-1] == model.datomic_type.to_s
-          binding.pry
           raise NotFound.new(model, id)
         end
 
