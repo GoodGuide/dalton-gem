@@ -5,33 +5,12 @@ describe Dalton::Model do
     include Dalton::Model
 
     uri "datomic:mem://spec"
-    namespace :dalton
-    partition :spec
 
-    schema <<-EDN
-      [[:db/add #db/id[:db.part/spec] :db/ident :dalton.type/sample]
-
-       {:db/id #db/id[:db.part/db]
-        :db/ident :dalton.sample/foo
-        :db/valueType :db.type/string
-        :db/cardinality :db.cardinality/one
-        :db/doc "Foo attribute"
-        :db.install/_attribute :db.part/db}
-
-       {:db/id #db/id[:db.part/db]
-        :db/ident :dalton.sample/bar-custom-key
-        :db/valueType :db.type/string
-        :db/cardinality :db.cardinality/one
-        :db/doc "Bar attribute"
-        :db.install/_attribute :db.part/db}
-
-       {:db/id #db/id[:db.part/db]
-        :db/ident :dalton.sample/parent
-        :db/valueType :db.type/ref
-        :db/cardinality :db.cardinality/one
-        :db/doc "Parent Sample"
-        :db.install/_attribute :db.part/db}]
-    EDN
+    schema :namespace => :dalton, :partition => :spec do
+      attribute "Foo attribute", :foo, :value_type => :string
+      attribute "Bar attribute", :'bar-custom-key', :value_type => :string
+      attribute "Parent model", :parent, :value_type => :ref
+    end
 
     attribute :foo, :default => 'foo-default'
     attribute :bar, 'dalton.sample/bar-custom-key'
