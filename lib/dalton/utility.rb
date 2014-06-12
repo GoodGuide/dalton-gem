@@ -49,10 +49,17 @@ module Dalton
     end
 
     def sym(s)
+      s = s.to_s if s.is_a? Symbol
       Java::ClojureLang::Symbol.intern(s)
     end
 
+    def tempid(partition)
+      Peer.tempid(kw(partition))
+    end
+
     def kw(k)
+      k = k.to_s if k.is_a? Symbol
+      k = k[1..-1] if k.start_with? ':'
       Java::ClojureLang::Keyword.intern(k)
     end
 
