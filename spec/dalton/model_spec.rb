@@ -1,12 +1,17 @@
 require 'spec_helper'
 
 describe Dalton::Model do
+  Dalton::Model.configure(
+    :default_namespace => :dalton,
+    :default_partition => :spec
+  )
+
   class Sample
     include Dalton::Model
 
     uri "datomic:mem://spec"
 
-    schema :namespace => :dalton, :partition => :spec do
+    schema do
       attribute "Foo attribute", :foo, :value_type => :string
       attribute "Bar attribute", :'bar-custom-key', :value_type => :string
       attribute "Parent model", :parent, :value_type => :ref

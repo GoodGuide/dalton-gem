@@ -21,6 +21,21 @@ module Dalton
     @registry = {}
     class << self
       attr_reader :registry
+
+      def default_namespace
+        @default_namespace \
+          or raise ArgumentError.new("no default namespace configured")
+      end
+
+      def default_partition
+        @default_partition \
+          or raise ArgumentError.new("no default partition configured")
+      end
+
+      def configure(opts={})
+        @default_partition = opts[:default_partition]
+        @default_namespace = opts[:default_namespace]
+      end
     end
 
     module ClassMethods
@@ -48,8 +63,8 @@ module Dalton
         puts "datomic_name: #{@datomic_name}"
 
         # TODO: config a global default for these two
-        @namespace = opts.fetch(:namespace)
-        @partition = opts.fetch(:partition)
+        @namespace = opts.fetch(:namespace) { Model.default_namespace }
+        @partition = opts.fetch(:partition) { Model.default_partition }
         @partition = :"db.part/#{partition}" unless partition.to_s.start_with?('db.part/')
 
         Model.registry[datomic_type.to_s] = self
