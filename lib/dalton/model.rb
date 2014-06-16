@@ -1,3 +1,5 @@
+require 'logger' # stdlib
+
 module Dalton
   module Model
     def self.included(base)
@@ -19,22 +21,28 @@ module Dalton
     end
 
     @registry = {}
+    @logger = Logger.new($stderr)
+    @logger.level = Logger::WARN
+
     class << self
       attr_reader :registry
 
-      def default_namespace
-        @default_namespace \
-          or raise ArgumentError.new("no default namespace configured")
+      def install_schemas!
+        registry.values.each(&:install_schema!)
       end
 
-      def default_partition
-        @default_partition \
-          or raise ArgumentError.new("no default partition configured")
+      def install_bases!
+        registry.values.each(&:install_base!)
       end
 
-      def configure(opts={})
-        @default_partition = opts[:default_partition]
-        @default_namespace = opts[:default_namespace]
+      def install!
+        install_bases!
+        install_schemas!
+      end
+
+      attr_accessor :namespace, :partition, :uri, :logger
+      def configure(&b)
+        yield self
       end
     end
 
@@ -60,16 +68,15 @@ module Dalton
           .gsub(/(?<=[[:lower:]])(?=[[:upper:]])/, '-')
           .downcase
 
-        puts "datomic_name: #{@datomic_name}"
-
-        # TODO: config a global default for these two
-        @namespace = opts.fetch(:namespace) { Model.default_namespace }
-        @partition = opts.fetch(:partition) { Model.default_partition }
+        @namespace = opts.fetch(:namespace) { Model.namespace } \
+          or raise ArgumentError.new("no namespace configured for #{self} or globally")
+        @partition = opts.fetch(:partition) { Model.partition } \
+          or raise ArgumentError.new("no partition configured for #{self} or globally")
         @partition = :"db.part/#{partition}" unless partition.to_s.start_with?('db.part/')
 
         Model.registry[datomic_type.to_s] = self
 
-        @schema = Schema.new(self, @datomic_name, @namespace, @partition, &b)
+        @schema = Schema.new(self, &b)
       end
 
       def install_schema!
@@ -106,7 +113,7 @@ module Dalton
 
       def uri(arg=nil)
         @uri = arg if arg
-        @uri or raise "you must specify a datomic uri for #{self}"
+        @uri or Model.uri or raise "you must specify a datomic uri for #{self}"
       end
 
       def connection
@@ -316,7 +323,7 @@ module Dalton
 
       def q(query)
         translated_query = Translation.from_ruby(query)
-        $stderr.puts("datomic.q #{translated_query.to_edn}")
+        Model.logger.info("datomic.q #{translated_query.to_edn}")
         result = Peer.q(translated_query, @db)
         Translation.from_clj(result)
       end
@@ -454,15 +461,24 @@ module Dalton
     class Schema
       include Dalton::Utility
 
-      attr_reader :model, :name, :partition, :namespace, :transactions
-      def initialize(model, name, namespace, partition, &block)
+      attr_reader :model, :transactions
+      def initialize(model, &block)
         @model = model
-        @name = name
-        @partition = partition
-        @namespace = namespace
         @transactions = []
         declare_type
         instance_exec(&block)
+      end
+
+      def name
+        model.datomic_name
+      end
+
+      def partition
+        model.partition
+      end
+
+      def namespace
+        model.namespace
       end
 
       def key(key, subkey=nil)
@@ -474,7 +490,7 @@ module Dalton
       end
 
       def declare_type
-        edn [:'db/add', Peer.tempid(kw(@partition)), :'db/ident', key(:type, name)]
+        edn [:'db/add', Peer.tempid(kw(partition)), :'db/ident', key(:type, name)]
       end
 
       def edn(edn)
@@ -493,7 +509,7 @@ module Dalton
       end
 
       def install!
-        @transactions.each do |t|
+        transactions.each do |t|
           model.transact([t])
         end
       end
