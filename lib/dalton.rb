@@ -9,13 +9,16 @@ module Dalton
   end
 end
 
+require_relative('dalton/datomization')
+require_relative('dalton/undatomization')
+
 require_relative('dalton/database')
+require_relative('dalton/connection')
 require_relative('dalton/entity')
 require_relative('dalton/transaction_result')
 require_relative('dalton/attribute')
 require_relative('dalton/utility')
 require_relative('dalton/translation')
-require_relative('dalton/datomization')
 
 class Object
   def to_edn

@@ -86,7 +86,7 @@ describe Dalton::Translation do
     context "with a (ruby) Dalton entity" do
       subject { Dalton::Translation.from_ruby(dalton_entity) }
 
-      it 'returns the wrapped Datomic entity' do
+      it 'returns the enclosed Datomic entity' do
         expect(subject).to equal(datomic_entity)
       end
     end
