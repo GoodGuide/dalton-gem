@@ -108,6 +108,7 @@ module Dalton
       end
 
       def transact(edn)
+        Model.logger.info("datomic.transact #{Database.convert_datoms(edn).to_edn}")
         connection.transact(edn)
       end
 
