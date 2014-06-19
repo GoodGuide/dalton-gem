@@ -136,6 +136,29 @@ describe Dalton::Model do
         assert { next_model.parent == next_model }
         assert { next_model.children.to_a == [next_model] }
       end
+
+      it 'creates sub-entities' do
+        next_model = model.change! do |m|
+          m.parent = Sample.create { |p| p.foo = 'parent' }
+          m.foo = 'child'
+        end
+
+        assert { next_model.parent.is_a? Sample }
+        assert { next_model.parent.foo == 'parent' }
+        assert { next_model.parent.id.is_a? Fixnum }
+      end
+
+      it 'creates sub-entities from reverse collections' do
+        next_model = model.change! do |m|
+          m.children = %w(a b c).map do |v|
+            Sample.create { |c| c.foo = v }
+          end
+          m.foo = 'parent'
+        end
+
+        assert { next_model.children.count == 3 }
+        assert { next_model.children.map(&:foo).to_a.sort == %w(a b c) }
+      end
     end
   end
 end

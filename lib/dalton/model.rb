@@ -190,6 +190,10 @@ module Dalton
       def create!(&b)
         self::Changer.new(Dalton::Utility.tempid(partition), defaults).change!(&b)
       end
+
+      def create(&b)
+        self::Changer.new(Dalton::Utility.tempid(partition), defaults).change(&b)
+      end
     end
 
     attr_reader :finder, :entity
@@ -404,14 +408,19 @@ module Dalton
             generate_datom(key, v, &b)
           end
         when Model
+          # using a hash so that reverse attributes (ns.model/_attr) are supported
           yield(:'db/id' => @id, datomic_key(key) => value.id)
         when Numeric, String, Symbol, true, false
           yield [:'db/add', @id, datomic_key(key), value]
+        when BaseChanger
+          value.generate_datoms(&b)
+          yield(:'db/id' => @id, datomic_key(key) => value.id)
         else
           raise TypeError.new("invalid datomic value: #{value.inspect}")
         end
       end
 
+    protected
       def generate_datoms(&b)
         return enum_for(:generate_datoms).to_a unless block_given?
 
