@@ -9,10 +9,17 @@ module Dalton
         @validator = Validator.new(base)
 
         const_set :Finder, Class.new(BaseFinder) {
+          # we use a constant here so that `super` works
+          # in overriding generated methods
+          const_set :AttributeMethods, Module.new
+          include self::AttributeMethods
           define_method(:model) { base }
         }
 
         const_set :Changer, Class.new(BaseChanger) {
+          # as above
+          const_set :AttributeMethods, Module.new
+          include self::AttributeMethods
           define_method(:model) { base }
         }
 
@@ -157,11 +164,11 @@ module Dalton
 
         define_method(key) { self[key] }
 
-        finders do
+        self::Finder::AttributeMethods.class_eval do
           define_method("by_#{key}") { |v| where(key => v) }
         end
 
-        changers do
+        self::Changer::AttributeMethods.class_eval do
           define_method(key) { self[key] }
           define_method("#{key}=") { |v| self[key] = v }
         end

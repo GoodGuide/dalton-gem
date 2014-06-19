@@ -14,12 +14,21 @@ describe Dalton::Model do
       attribute "Foo attribute", :foo, :value_type => :string
       attribute "Bar attribute", :'bar-custom-key', :value_type => :string
       attribute "Parent model", :parent, :value_type => :ref
+      attribute "Overrideable attribute", :overrideable, :value_type => :string
     end
 
     attribute :foo, :default => 'foo-default'
     attribute :bar, 'dalton.sample/bar-custom-key'
+    attribute :overrideable
     attribute :parent
     referenced :children, :type => Sample, :from => :parent
+
+    changers do
+      def overrideable=(v)
+        super
+        self.foo = "overridden with #{v}"
+      end
+    end
 
     validation do
       validate :foo do |foo|
@@ -55,17 +64,24 @@ describe Dalton::Model do
     end
 
     describe '#change' do
-      let(:next_model) do
-        model.change! do |m|
+      it 'returns a new model with the changes' do
+        next_model = model.change! do |m|
           m.foo = 'new-foo-value'
         end
-      end
 
-      it 'returns a new model with the changes' do
         assert { next_model.is_a? Sample }
         assert { next_model.foo == 'new-foo-value' }
         assert { next_model.bar == 'bar-value' }
         assert { model.foo == 'foo-default' }
+      end
+
+      it 'allows `super` in overridden methods' do
+        next_model = model.change! do |m|
+          m.overrideable = 'x'
+        end
+
+        assert { next_model.overrideable == 'x' }
+        assert { next_model.foo == 'overridden with x' }
       end
     end
 
