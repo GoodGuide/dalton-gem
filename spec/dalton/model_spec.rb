@@ -31,8 +31,8 @@ describe Dalton::Model do
   end
 
   before do
-    Sample.install_base!
-    Sample.install_schema!
+    Dalton::Model.install_bases!
+    Dalton::Model.install_schemas!
   end
 
   after do
