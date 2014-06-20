@@ -85,6 +85,12 @@ describe Dalton::Model do
       end
     end
 
+    describe '#updated_at', focus: true do
+      it 'returns a Time' do
+        assert { model.updated_at.is_a? Time }
+      end
+    end
+
     describe 'validations' do
       let(:validation_error) do
         rescuing {

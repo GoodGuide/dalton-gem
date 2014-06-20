@@ -245,6 +245,12 @@ module Dalton
       attributes.merge(:id => id)
     end
 
+    # TODO: fix this implementation
+    def updated_at
+      txid = Peer.q('[:find (max ?t) :in $ ?e :where [?e _ _ ?t]]', entity.db, self.id).first.first
+      Time.at(entity.db.entity(txid).get(':db/txInstant').getTime/1000)
+    end
+
     def changer
       self.class::Changer.new(id, attributes)
     end

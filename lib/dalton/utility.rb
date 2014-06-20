@@ -53,6 +53,10 @@ module Dalton
       Java::ClojureLang::Symbol.intern(s)
     end
 
+    def gensym(s)
+      run_clojure_function('clojure.core/gensym', sym(s))
+    end
+
     def tempid(partition)
       Peer.tempid(kw(partition))
     end
