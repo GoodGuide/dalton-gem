@@ -52,6 +52,10 @@ module Dalton
       Java::ClojureLang::Symbol.intern(s)
     end
 
+    def gensym(s)
+      run_clojure_function('clojure.core/gensym', sym(s))
+    end
+
     def kw(k)
       Java::ClojureLang::Keyword.intern(k)
     end
