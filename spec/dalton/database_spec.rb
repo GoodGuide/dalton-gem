@@ -31,6 +31,41 @@ describe Dalton::Database do
       it 'refreshes the database' do
         expect(d.db).to equal(transaction_result.db_after)
       end
+
+      describe 'errors' do
+        before do
+          # create an attribute with :db.unique/value
+          d.transact([{:'db/id' => Dalton::Database.tempid(:'db.part/db'),
+                       :'db/ident' => :'user.test/unique-attr',
+                       :'db/cardinality' => :'db.cardinality/one',
+                       :'db/unique' => :'db.unique/value',
+                       :'db/valueType' => :'db.type/string',
+                       :'db.install/_attribute' => :'db.part/db'}])
+
+          tempid = Dalton::Database.tempid(:'db.part/user')
+          d.transact([[:'db/add', tempid, :'user.test/unique-attr', 'duplicate-value']])
+        end
+
+        describe 'in uniqueness' do
+          let(:error) {
+            err = nil
+            tempid = Dalton::Database.tempid(:'db.part/user')
+            begin
+              d.transact([[:'db/add', tempid, :'user.test/unique-attr', 'duplicate-value']])
+            rescue Dalton::UniqueConflict => e
+              err = e
+            end
+            err
+          }
+
+          it 'contains useful information' do
+            expect(error).to be_a(Dalton::UniqueConflict)
+            expect(error.attribute).to be(:'user.test/unique-attr')
+            expect(error.value).to eql('duplicate-value')
+            expect(error.existing_id).to be > 0
+          end
+        end
+      end
     end
 
     describe '#q(query)' do

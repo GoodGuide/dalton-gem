@@ -4,6 +4,36 @@ java_import "datomic.Peer"
 require_relative 'datomization'
 
 module Dalton
+  class UniqueConflict < DatomicError
+    # TODO: [jneen] this is terrible, but error handling is not implemented at the moment.
+    # eventually all this data should be accessible via (ex-data e).
+    MESSAGE_RE =
+      %r(^:db[.]error/unique-conflict Unique conflict: :([a-z./-]+), value: (.*?) already held by: (\d+) asserted for: (\d+)$)o
+
+    def self.parse(message)
+      message =~ MESSAGE_RE
+      raise ArgumentError, "invalid format: #{message.inspect}" unless $~
+      new(
+        attribute: $1.to_sym,
+        value: $2,
+        existing_id: Integer($3),
+        new_id: Integer($4),
+      )
+    end
+
+    attr_reader :attribute, :value, :existing_id, :new_id
+    def initialize(opts={})
+      @attribute = opts.fetch(:attribute)
+      @value = opts.fetch(:value)
+      @existing_id = opts.fetch(:existing_id)
+      @new_id = opts.fetch(:new_id)
+    end
+
+    def message
+      "Unique conflict: tried to assign duplicate #@attribute to #@new_id, already held by #@existing_id. value: #@value"
+    end
+  end
+
   class Database
 
     include Dalton::Datomization
@@ -48,6 +78,15 @@ module Dalton
       @db = result.db_after
       Translation.from_clj(result)
     rescue Java::JavaUtilConcurrent::ExecutionException => e
+      cause = e.getCause
+      if cause.respond_to?(:data)
+        err_data = Translation.from_clj(cause.data)
+        case err_data[:'db/error']
+        when :'db.error/unique-conflict'
+          raise UniqueConflict.parse(cause.getMessage)
+        end
+      end
+
       raise DatomicError, "Transaction failed: #{e.getMessage}"
     end
 

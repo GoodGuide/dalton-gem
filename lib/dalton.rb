@@ -4,6 +4,11 @@ require 'rubygems'
 require 'jbundler'
 require 'zweikopf'
 
+module Dalton
+  class DatomicError < StandardError
+  end
+end
+
 require_relative('dalton/database')
 require_relative('dalton/entity')
 require_relative('dalton/transaction_result')
@@ -11,11 +16,6 @@ require_relative('dalton/attribute')
 require_relative('dalton/utility')
 require_relative('dalton/translation')
 require_relative('dalton/datomization')
-
-module Dalton
-  class DatomicError < StandardError
-  end
-end
 
 class Object
   def to_edn
