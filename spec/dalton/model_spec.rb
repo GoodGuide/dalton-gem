@@ -11,10 +11,10 @@ describe Dalton::Model do
     include Dalton::Model
 
     schema do
-      attribute "Foo attribute", :foo, :value_type => :string
-      attribute "Bar attribute", :'bar-custom-key', :value_type => :string
-      attribute "Parent model", :parent, :value_type => :ref
-      attribute "Overrideable attribute", :overrideable, :value_type => :string
+      attribute :foo, :value_type => :string
+      attribute :'bar-custom-key', :value_type => :string, :doc => "the #bar attribute"
+      attribute :parent, :value_type => :ref
+      attribute :overrideable, :value_type => :string
     end
 
     attribute :foo, :default => 'foo-default'
@@ -27,6 +27,13 @@ describe Dalton::Model do
       def overrideable=(v)
         super
         self.foo = "overridden with #{v}"
+      end
+    end
+
+    finders do
+      def by_foo_and_bar(foo_and_bar)
+        foo, bar = foo_and_bar.split('/')
+        where(:foo => foo, :bar => bar)
       end
     end
 
@@ -131,6 +138,15 @@ describe Dalton::Model do
         it 'returns the same model' do
           by_bar = finder.where(:bar => 'bar-value')
           assert { by_bar.first == model }
+        end
+      end
+
+      describe 'custom finders' do
+        let(:finder) { model.change! { |m| m.foo = 'foo-value' }.finder }
+
+        it 'runs custom finders' do
+          result = finder.by_foo_and_bar('foo-value/bar-value')
+          assert { result.first == model }
         end
       end
     end
