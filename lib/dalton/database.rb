@@ -43,10 +43,10 @@ module Dalton
     end
 
     def self.connect(uri)
-      d = new(uri)
-      d.create rescue nil
-      d.connect
-      d
+      Peer.createDatabase(uri)
+      database = new(uri)
+      database.connect
+      return database
     end
 
     attr_reader :uri, :conn, :db
@@ -65,6 +65,7 @@ module Dalton
       @conn = Peer.connect(uri) or
         raise DatomicError, "Unable to connect to database at \"#{uri}\"."
       refresh
+      true
     end
 
     def refresh
