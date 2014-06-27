@@ -75,7 +75,7 @@ module Dalton
       end
 
       def transact(edn)
-        Model.logger.info("datomic.transact #{Database.convert_datoms(edn).to_edn}")
+        Model.logger.info("datomic.transact #{Connection.convert_datoms(edn).to_edn}")
         connection.transact(edn)
       end
 
@@ -85,7 +85,7 @@ module Dalton
       end
 
       def connection
-        Dalton::Database.connect(uri)
+        Connection.connect(uri)
       end
 
       def datomic_type

@@ -61,6 +61,10 @@ module Dalton
       Peer.tempid(kw(partition))
     end
 
+    def gensym(s)
+      run_clojure_function('clojure.core/gensym', sym(s))
+    end
+
     def kw(k)
       k = k.to_s if k.is_a? Symbol
       k = k[1..-1] if k.start_with? ':'

@@ -4,7 +4,7 @@ describe Dalton::Entity do
   include DatomicContext
 
   before do
-    d.transact([{:'db/id' => Dalton::Database.tempid(':db.part/db'),
+    conn.transact([{:'db/id' => Dalton::Connection.tempid(':db.part/db'),
                  :'db/ident' => :'test/stuff',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/one',
@@ -16,16 +16,16 @@ describe Dalton::Entity do
 
   describe '#to_h' do
     let!(:transaction_result) {
-      d.transact([{:'db/id' => Dalton::Database.tempid,
+      conn.transact([{:'db/id' => Dalton::Connection.tempid,
                    :'db/doc' => 'foo',
-                   :'test/stuff' => {:'db/id' => Dalton::Database.tempid,
+                   :'test/stuff' => {:'db/id' => Dalton::Connection.tempid,
                                      :'db/doc' => 'bar'}}
                  ])
 
     }
     let(:tempids) { transaction_result.tempids.values.sort }
 
-    let(:entity) { d.retrieve([:find, :'?e', :where, [:'?e', :'db/doc', 'foo']]).first }
+    let(:entity) { conn.db.retrieve([:find, :'?e', :where, [:'?e', :'db/doc', 'foo']]).first }
     subject { entity.to_h }
 
     it 'should translate the entity to a hash' do

@@ -60,6 +60,18 @@ describe Dalton::Translation do
         expect(subject).to eq(ruby_keyword_datalog_variable)
       end
     end
+
+    context "with a java.util.Date" do
+      subject {
+        format = Java::JavaText::SimpleDateFormat.new("yyyy-MM-dd HH:mm:ss Z")
+        Dalton::Translation.from_clj(format.parse("1998-07-05 07:00:00 -0000"))
+      }
+
+      it 'returns the equivalent ruby DateTime' do
+        expect(subject).to eq(DateTime.parse("1998-07-05 07:00:00 -0000"))
+      end
+    end
+
   end
 
   describe "#from_ruby" do
@@ -74,7 +86,7 @@ describe Dalton::Translation do
     context "with a (ruby) Dalton entity" do
       subject { Dalton::Translation.from_ruby(dalton_entity) }
 
-      it 'returns the wrapped Datomic entity' do
+      it 'returns the enclosed Datomic entity' do
         expect(subject).to equal(datomic_entity)
       end
     end
@@ -92,6 +104,21 @@ describe Dalton::Translation do
 
       it 'returns the equivalent clojure symbol' do
         expect(subject).to clojure_equal(clojure_symbol_datalog_source)
+      end
+    end
+
+    context "with a ruby DateTime" do
+      subject {
+        Dalton::Translation.from_ruby(DateTime.parse("1998-07-05 07:00:00 -0000"))
+      }
+
+      let(:expected) {
+        format = Java::JavaText::SimpleDateFormat.new("yyyy-MM-dd HH:mm:ss Z")
+        format.parse("1998-07-05 07:00:00 -0000")
+      }
+
+      it 'returns the equivalent ruby DateTime' do
+        expect(subject).to eq(expected)
       end
     end
   end

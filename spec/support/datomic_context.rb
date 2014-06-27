@@ -5,15 +5,15 @@ module DatomicContext
 
   let(:uri) { 'datomic:mem://spec' }
   # let(:uri) { 'datomic:dev://localhost:4334/spec' }
-  let(:d) { Dalton::Database.new(uri) }
+  let(:conn) { Dalton::Connection.new(uri) }
+  let(:db) { conn.refresh }
 
   before do
-    d.create
-    d.connect
-    d.refresh
+    conn.create
+    conn.connect
   end
 
   after do
-    d.destroy
+    conn.destroy
   end
 end

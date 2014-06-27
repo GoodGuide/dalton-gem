@@ -10,7 +10,7 @@ module Dalton
     attr_reader :datomic_entity
 
     def db
-      datomic_entity.db
+      datomic_entity.datomic_db
     end
 
     def get(key)

@@ -6,6 +6,12 @@ java_import "clojure.lang.Keyword"
 require 'zweikopf'
 
 module Zweikopf
+  module Primitive
+    def self.is_primitive_type?(obj) # monkey patch to remove DateTime from list of primitives and allow them to be converted. :-/
+      [String, Fixnum, Integer, Float, TrueClass, FalseClass].include?(obj.class)
+    end
+  end
+
   module Keyword
     # Monkey patch special handling for datalog variables
     def self.from_ruby(keyword)
@@ -34,6 +40,8 @@ module Dalton
             Set.new(value.map{|x| from_clj(x)})
           when Java::Datomic::Entity
             Dalton::Entity.new(value)
+          when Java::JavaUtil::Date
+            Time.at(value.getTime / 1000).to_datetime
           else
             value
         end
@@ -47,6 +55,8 @@ module Dalton
             PersistentHashSet.create(value.map{|x| from_ruby(x)})
           when Dalton::Entity
             value.datomic_entity
+          when DateTime
+            Java::JavaUtil::Date.new(value.to_time.to_i * 1000)
           else
             value
         end

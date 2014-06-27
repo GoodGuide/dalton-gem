@@ -8,30 +8,12 @@ describe Dalton::Database do
     let(:attribute) { :'db/doc' }
     let(:value) { 'This is a test entity.' }
 
-    let!(:transaction_result) { d.transact([{:'db/id' => Dalton::Database.tempid, attribute => value}]) }
+    let!(:transaction_result) { conn.transact([{:'db/id' => Dalton::Connection.tempid, attribute => value}]) }
 
     let(:entity_id) { transaction_result.tempids.values.first }
 
     let(:query) { [:find, :'?e', :where, [:'?e', attribute, value]] }
     let(:edn_query) { '[:find ?e :where [?e :db/doc "This is a test entity."]]' }
-
-    describe '#transact(datoms)' do
-
-      it 'stores data' do
-        expect(d.q(query).size).to eq(1)
-      end
-
-      it 'returns a transaction result' do
-        expect(transaction_result.db_before).to be_a(Java::Datomic::Database)
-        expect(transaction_result.db_after).to be_a(Java::Datomic::Database)
-        expect(transaction_result.tx_data).to be_a(Array)
-        expect(transaction_result.tempids).to be_a(Hash)
-      end
-
-      it 'refreshes the database' do
-        expect(d.db).to equal(transaction_result.db_after)
-      end
-    end
 
     describe '#q(query)' do
 
@@ -41,27 +23,27 @@ describe Dalton::Database do
           expect(query_result.size).to eq(1)
 
           entity_id = query_result.first.first
-          entity = d.entity(entity_id)
+          entity = db.entity(entity_id)
 
           expect(entity[attribute]).to eq(value)
         end
       end
 
       context "when the query is a ruby data structure" do
-        let(:query_result) { d.q(query) }
+        let(:query_result) { db.q(query) }
 
         it_behaves_like 'a query'
       end
 
       context "when the query is an EDN string" do
-        let(:query_result) { d.q(edn_query) }
+        let(:query_result) { db.q(edn_query) }
 
         it_behaves_like 'a query'
       end
     end
 
     describe '#entity(entity_id)' do
-      let(:entity) { d.entity(entity_id) }
+      let(:entity) { db.entity(entity_id) }
 
       it 'fetches an entity from the database' do
         expect(entity[attribute]).to eq(value)
@@ -69,7 +51,7 @@ describe Dalton::Database do
     end
 
     describe '#retrieve(query)' do
-      let(:results) { d.retrieve(query) }
+      let(:results) { db.retrieve(query) }
       let(:entity) { results.first }
 
       it 'runs a query and retrieves entities' do
@@ -82,34 +64,10 @@ describe Dalton::Database do
       end
     end
 
-    describe '#retract(entity)' do
-
-      shared_examples_for "a retraction" do
-        it 'retracts the entity' do
-          expect(d.q(query).size).to eq(0)
-        end
-      end
-
-      context "when supplied an id" do
-        before do
-          d.retract(entity_id)
-        end
-
-        it_behaves_like 'a retraction'
-      end
-
-      context "when supplied an entity" do
-        before do
-          d.retract(d.entity(entity_id))
-        end
-
-        it_behaves_like 'a retraction'
-      end
-    end
   end
 
   describe "#attribute" do
-    let(:attribute) { d.attribute(:'db/doc') }
+    let(:attribute) { db.attribute(:'db/doc') }
     it "retrieves an attribute definition" do
       expect(attribute.hasAVET).to eq(false)
       expect(attribute.hasFulltext).to eq(true)

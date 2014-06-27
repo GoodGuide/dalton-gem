@@ -4,9 +4,9 @@ describe Dalton::Datomization do
   include DatomicContext
 
   before do
-    d.set_up_datomizer
+    conn.set_up_datomizer
 
-    d.transact([{:'db/id' => Dalton::Database.tempid(':db.part/db'),
+    conn.transact([{:'db/id' => Dalton::Connection.tempid(':db.part/db'),
                  :'db/ident' => :'test/map',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/many',
@@ -15,7 +15,7 @@ describe Dalton::Datomization do
                  :'dmzr.ref/type' => :'dmzr.type/map',
                  :'db.install/_attribute' => :'db.part/db',
                 },
-                {:'db/id' => Dalton::Database.tempid(':db.part/db'),
+                {:'db/id' => Dalton::Connection.tempid(':db.part/db'),
                  :'db/ident' => :'test/vector',
                  :'db/valueType' => :'db.type/ref',
                  :'db/cardinality' => :'db.cardinality/many',
@@ -24,7 +24,7 @@ describe Dalton::Datomization do
                  :'dmzr.ref/type' => :'dmzr.type/vector',
                  :'db.install/_attribute' => :'db.part/db',
                 },
-                {:'db/id' => Dalton::Database.tempid(':db.part/db'),
+                {:'db/id' => Dalton::Connection.tempid(':db.part/db'),
                  :'db/ident' => :'test/edn',
                  :'db/valueType' => :'db.type/string',
                  :'db/cardinality' => :'db.cardinality/one',
@@ -35,10 +35,10 @@ describe Dalton::Datomization do
 
   shared_examples_for "it round trips via datomization" do |attribute|
     it "should store and retrieve the value" do
-      id = Dalton::Database.tempid
+      id = Dalton::Connection.tempid
       original_data = {:'db/id' => id, attribute => value}
-      real_id = d.datomize(original_data)
-      round_tripped_data = d.undatomize(real_id)
+      real_id = conn.datomize(original_data)
+      round_tripped_data = conn.db.undatomize(real_id)
       expect(round_tripped_data[attribute]).to eq(value)
     end
   end
