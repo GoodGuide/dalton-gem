@@ -34,6 +34,31 @@ module Dalton
     end
   end
 
+  class TypeError < DatomicError
+    MESSAGE_RE = %r(^:db[.]error/wrong-type-for-attribute Value (.*?) is not a valid :(\w+) for attribute :([a-z./-]+)$)
+
+    def self.parse(message)
+      message =~ MESSAGE_RE
+      raise ArgumentError, "invalid format: #{message.inspect}" unless $~
+      new(
+        value: $1,
+        type: $2.to_sym,
+        attribute: $3.to_sym
+      )
+    end
+
+    attr_reader :value, :type, :attribute
+    def initialize(opts={})
+      @value = opts.fetch(:value)
+      @type = opts.fetch(:type)
+      @attribute = opts.fetch(:attribute)
+    end
+
+    def message
+      "Type error: tried to set #@attribute as #@value, expected type #@type"
+    end
+  end
+
   class Connection
 
     include Dalton::Datomization
@@ -90,6 +115,8 @@ module Dalton
         case err_data[:'db/error']
         when :'db.error/unique-conflict'
           raise UniqueConflict.parse(cause.getMessage)
+        when :'db.error/wrong-type-for-attribute'
+          raise TypeError.parse(cause.getMessage)
         end
       end
 
