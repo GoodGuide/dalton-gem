@@ -65,6 +65,26 @@ describe Dalton::Connection do
             expect(error.existing_id).to be > 0
           end
         end
+
+        describe 'in type' do
+          let(:error) do
+            err = nil
+            tempid = Dalton::Connection.tempid(:'db.part/user')
+            begin
+              conn.transact([[:'db/add', tempid, :'user.test/unique-attr', 5]])
+            rescue Dalton::TypeError => e
+              err = e
+            end
+            err
+          end
+
+          it 'contains useful information' do
+            expect(error).to be_a(Dalton::TypeError)
+            expect(error.attribute).to be(:'user.test/unique-attr')
+            expect(error.value).to eql('5') # TODO: this sucks, but they're indistinguishable!
+            expect(error.type).to be(:string)
+          end
+        end
       end
     end
 
