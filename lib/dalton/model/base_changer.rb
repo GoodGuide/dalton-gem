@@ -90,7 +90,7 @@ module Dalton
       def generate_datoms(&b)
         return enum_for(:generate_datoms).to_a unless block_given?
 
-        yield [:'db/add', @id, model.datomic_type_key, model.datomic_type]
+        yield model.base_attributes.merge(:'db/id' => @id)
         @changes.each do |key, new_val|
           generate_datom(key, new_val, &b)
         end

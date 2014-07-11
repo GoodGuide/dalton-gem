@@ -22,6 +22,7 @@ module Dalton
         @partition = :"db.part/#{partition}" unless partition.to_s.start_with?('db.part/')
 
         Model.registry[datomic_type.to_s] = self
+        base_attribute datomic_type_key, datomic_type
 
         @schema = Schema.new(self, &b)
       end

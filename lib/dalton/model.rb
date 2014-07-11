@@ -10,6 +10,7 @@ module Dalton
     def self.included(base)
       base.class_eval do
         @attributes = {}
+        @base_attributes = {}
         @defaults = {}
         @validator = Validator.new(base)
 
@@ -65,6 +66,7 @@ module Dalton
       attr_reader :datomic_name
       attr_reader :namespace
       attr_reader :partition
+      attr_reader :base_attributes
 
       def interpret_entity(entity)
         registry_name = entity.get(":#{datomic_type_key}").to_s[1..-1]
@@ -77,6 +79,10 @@ module Dalton
       def transact(edn)
         Model.logger.info("datomic.transact #{Connection.convert_datoms(edn).to_edn}")
         connection.transact(edn)
+      end
+
+      def base_attribute(key, val)
+        @base_attributes.merge!(key => val)
       end
 
       def uri(arg=nil)
@@ -174,7 +180,12 @@ module Dalton
     end
 
     def [](key)
-      datomic_key = self.class.get_attribute(key)
+      datomic_key = if key.respond_to? :id
+        key.id
+      else
+        self.class.get_attribute(key)
+      end
+
       interpret_value(entity.get(datomic_key)) || self.class.defaults.fetch(key)
     end
 
