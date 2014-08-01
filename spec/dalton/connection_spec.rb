@@ -3,14 +3,14 @@ require 'spec_helper'
 describe Dalton::Connection do
   include DatomicContext
 
+  let(:attribute) { :'db/doc' }
+  let(:value) { 'This is a test entity.' }
+
+  let!(:transaction_result) { conn.transact([{:'db/id' => Dalton::Connection.tempid, attribute => value}]) }
+
+  let(:entity_id) { transaction_result.tempids.values.first }
+
   describe 'data storage, query, and retrieval' do
-
-    let(:attribute) { :'db/doc' }
-    let(:value) { 'This is a test entity.' }
-
-    let!(:transaction_result) { conn.transact([{:'db/id' => Dalton::Connection.tempid, attribute => value}]) }
-
-    let(:entity_id) { transaction_result.tempids.values.first }
 
     let(:query) { [:find, :'?e', :where, [:'?e', attribute, value]] }
     let(:edn_query) { '[:find ?e :where [?e :db/doc "This is a test entity."]]' }
@@ -113,6 +113,21 @@ describe Dalton::Connection do
     end
   end
 
+  describe '#tempid?' do
+    subject {Dalton::Connection.tempid?(id)}
+
+    context 'with a temp id' do
+      let (:id) {Dalton::Connection.tempid}
+
+      it { should be_true }
+    end
+
+    context 'with a real id' do
+      let (:id) {entity_id}
+
+      it { should be_false }
+    end
+  end
 end
 
 

@@ -148,5 +148,14 @@ module Dalton
         Peer.tempid(partition)
       end
     end
+
+    def self.tempid?(id)
+      0 > case id
+      when Numeric
+        id
+      when Java::DatomicDb::DbId
+        id.get(Utility::kw('idx'))
+      end
+    end
   end
 end
