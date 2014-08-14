@@ -12,6 +12,7 @@ end
 require_relative('dalton/datomization')
 require_relative('dalton/undatomization')
 
+require_relative('dalton/exception')
 require_relative('dalton/database')
 require_relative('dalton/connection')
 require_relative('dalton/entity')
