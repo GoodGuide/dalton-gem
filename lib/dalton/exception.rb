@@ -26,8 +26,12 @@ module Dalton
       @message = "Unique conflict: tried to assign duplicate #@attribute to #@new_id, already held by #@existing_id. value: #@value"
     end
 
+    def to_s
+      "#{self.class.name}: #@message"
+    end
+
     def inspect
-      "#<#{self.class.name}: #@message>"
+      "#<#{self.class.name}: @attribute=#@attribute @value=#@value @existing_id=#@existing_id @new_id=#@new_id>"
     end
   end
 
@@ -53,8 +57,12 @@ module Dalton
       @message = "Type error: tried to set #@attribute as #@value, expected type #@type"
     end
 
+    def to_s
+      "#{self.class.name}: #@message"
+    end
+
     def inspect
-      "#<#{self.class.name}: #@message>"
+      "#<#{self.class.name}: @attribute=#@attribute @value=#@value @type=#@type>"
     end
   end
 end
