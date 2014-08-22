@@ -22,6 +22,9 @@ module Dalton
     end
 
     class Validator
+      # a definition of a validator.  the block gets run in the context of
+      # a Scope, and may call `invalid!` with optional attributes and an
+      # error message
       class Rule
         class Scope
           def initialize(attrs, validate, &report)
@@ -64,16 +67,21 @@ module Dalton
         instance_eval(&defn)
       end
 
+      # define a validation on *attrs using &block.
+      # See Rule
       def validate(*attrs, &block)
         validators << Rule.new(*attrs, &block)
       end
 
+      # returns an enumerable of validation errors on the changeset,
+      # which is empty if the changeset is valid
       def run_all(changer, &report)
         return enum_for(:run_all, changer).to_a unless block_given?
 
         validators.each { |v| v.run(changer, &report) }
       end
 
+      # raises a ValidationError if the changeset is invalid
       def run_all!(changer)
         errors = run_all(changer)
         raise ValidationError.new(changer, errors) if errors.any?
