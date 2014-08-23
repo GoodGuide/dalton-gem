@@ -80,6 +80,7 @@ module Dalton
         end
 
         class RefType < Type
+          attr_reader :ref_class
           def initialize(ref_class)
             @ref_class = ref_class
           end

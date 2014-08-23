@@ -18,6 +18,17 @@ module Dalton
         self
       end
 
+      def change_or_create(key, &b)
+        attribute = model.get_attribute(key)
+        type = attribute.type
+
+        unless type.respond_to? :ref_class
+          raise ::TypeError, "change_or_create only works on refs"
+        end
+
+        self[key] = self[key] ? self[key].change(&b) : type.ref_class.create(&b)
+      end
+
       def change!(&b)
         change(&b)
         save!

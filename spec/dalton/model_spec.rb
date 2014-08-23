@@ -213,14 +213,16 @@ describe Dalton::Model do
       end
 
       it 'changes sub-entities' do
-        next_model = model.change! do |m|
+        first_model = model.change! do |m|
           m.foo = 'child'
-          m.parent = Sample.create {|p| p.foo = 'parent'}
+          m.change_or_create(:parent) { |p| p.foo = 'parent' }
         end
 
-        next_model = next_model.change! do |m|
-          # TODO make this interface better
-          m.parent = m.parent.change { |p| p.foo = 'parent-changed' }
+        assert { first_model.parent }
+        assert { first_model.parent.foo == 'parent' }
+
+        next_model = first_model.change! do |m|
+          m.change_or_create(:parent) { |p| p.foo = 'parent-changed' }
         end
 
         assert { next_model.parent.foo == 'parent-changed' }
