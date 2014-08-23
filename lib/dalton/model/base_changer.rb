@@ -7,20 +7,15 @@ module Dalton
         @original = attrs.dup.freeze
         @changes = {}
         @retractions = Set.new
-        @associated_changes = []
       end
 
       def retract!(attribute)
         @retractions << attribute
       end
 
-      def change(obj=nil, &b)
-        if obj
-          @associated_changes << obj.change(&b)
-        else
-          b.call(self)
-          self
-        end
+      def change(key=nil, &b)
+        b.call(self)
+        self
       end
 
       def change!(&b)
