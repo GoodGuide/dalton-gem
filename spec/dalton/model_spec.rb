@@ -92,6 +92,14 @@ describe Dalton::Model do
       end
     end
 
+    describe '#retract!' do
+      let(:txn) { model.retract! }
+
+      it 'retracts the model' do
+        expect { model.at(txn.db_after) }.to raise_error(Dalton::Model::NotFound)
+      end
+    end
+
     describe '#updated_at' do
       it 'returns a Time' do
         assert { model.updated_at.is_a? Time }

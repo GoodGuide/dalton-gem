@@ -228,6 +228,10 @@ module Dalton
       changer.change!(&b)
     end
 
+    def retract!
+      self.class.transact([[:'db.fn/retractEntity', self.id]])
+    end
+
     def ==(other)
       self.entity == other.entity
     end
