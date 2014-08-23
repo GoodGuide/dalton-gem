@@ -203,8 +203,20 @@ describe Dalton::Model do
         assert { next_model.children.count == 3 }
         assert { next_model.children.map(&:foo).to_a.sort == %w(a b c) }
       end
+
+      it 'changes sub-entities' do
+        next_model = model.change! do |m|
+          m.foo = 'child'
+          m.parent = Sample.create {|p| p.foo = 'parent'}
+        end
+
+        next_model = next_model.change! do |m|
+          # TODO make this interface better
+          m.parent = m.parent.change { |p| p.foo = 'parent-changed' }
+        end
+
+        assert { next_model.parent.foo == 'parent-changed' }
+      end
     end
   end
 end
-
-
