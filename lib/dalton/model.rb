@@ -41,6 +41,7 @@ module Dalton
 
     class << self
       attr_reader :registry
+      attr_writer :logger
 
       def install_schemas!
         registry.values.each(&:install_schema!)
