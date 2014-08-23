@@ -48,8 +48,12 @@ module Dalton
       end
 
       def []=(key, val)
-        @retractions.delete(key)
-        @changes[key] = val
+        if val.nil?
+          @retractions << key
+        else
+          @retractions.delete(key)
+          @changes[key] = val
+        end
       end
 
       def updated_attributes
