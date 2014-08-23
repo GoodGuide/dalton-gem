@@ -1,8 +1,6 @@
 java_import "clojure.lang.Keyword"
 java_import "datomic.Peer"
 
-require_relative 'datomization'
-
 module Dalton
   class UniqueConflict < DatomicError
     # TODO: [jneen] this is terrible, but error handling is not implemented at the moment.

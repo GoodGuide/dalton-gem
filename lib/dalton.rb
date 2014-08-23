@@ -3,23 +3,26 @@ defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby" or raise "JRuby required."
 require 'rubygems'
 require 'jbundler'
 require 'zweikopf'
+require 'pathname'
 
 module Dalton
   class DatomicError < StandardError
   end
 end
 
-require_relative('dalton/datomization')
-require_relative('dalton/undatomization')
+load_dir = Pathname.new(__FILE__).dirname
+load load_dir.join('dalton/utility.rb')
 
-require_relative('dalton/database')
-require_relative('dalton/connection')
-require_relative('dalton/entity')
-require_relative('dalton/transaction_result')
-require_relative('dalton/attribute')
-require_relative('dalton/utility')
-require_relative('dalton/translation')
-require_relative('dalton/model')
+load load_dir.join('dalton/datomization.rb')
+load load_dir.join('dalton/undatomization.rb')
+
+load load_dir.join('dalton/database.rb')
+load load_dir.join('dalton/connection.rb')
+load load_dir.join('dalton/entity.rb')
+load load_dir.join('dalton/transaction_result.rb')
+load load_dir.join('dalton/attribute.rb')
+load load_dir.join('dalton/translation.rb')
+load load_dir.join('dalton/model.rb')
 
 class Object
   def to_edn

@@ -1,10 +1,6 @@
 java_import "clojure.lang.PersistentHashSet"
 java_import "clojure.lang.Keyword"
 
-java_import "clojure.lang.Keyword"
-
-require 'zweikopf'
-
 module Zweikopf
   module Primitive
     def self.is_primitive_type?(obj) # monkey patch to remove DateTime from list of primitives and allow them to be converted. :-/

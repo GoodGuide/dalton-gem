@@ -4,6 +4,10 @@ Bundler.require
 
 require 'wrong/adapters/rspec'
 
-require 'dalton'
+def reload!
+  load './lib/dalton.rb'
 
-Dir[File.join(File.dirname(__FILE__), 'support/**/*')].each {|f| require(f)}
+  Dir[File.join(File.dirname(__FILE__), 'support/**/*.rb')].each {|f| load(f)}
+end
+
+reload!
