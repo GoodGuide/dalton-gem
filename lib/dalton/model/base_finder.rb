@@ -86,7 +86,7 @@ module Dalton
 
         hash.each do |key, value|
           attribute = model.get_attribute(key)
-          yield [sym('?e'), attribute.datomic_attribute, attribute.type.dump(value)]
+          yield [sym('?e'), attribute.datomic_attribute, attribute.dump(value)]
         end
       end
 

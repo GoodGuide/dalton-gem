@@ -53,7 +53,7 @@ module Dalton
         yield model.base_attributes.merge(:'db/id' => @id)
         @changes.each do |key, new_val|
           attribute = model.get_attribute(key)
-          attribute.type.datoms_for(self, new_val, &b)
+          attribute.datoms_for(self, new_val, &b)
         end
       end
 

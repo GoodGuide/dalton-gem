@@ -175,7 +175,7 @@ module Dalton
     def [](key)
       definition = self.class.get_attribute(key)
 
-      definition.type.load(entity.get(definition.datomic_attribute))
+      definition.load(entity.get(definition.datomic_attribute))
     end
 
     def interpret_value(value)
