@@ -3,14 +3,14 @@ require 'spec_helper'
 describe Dalton::Connection do
   include DatomicContext
 
+  let(:attribute) { :'db/doc' }
+  let(:value) { 'This is a test entity.' }
+
+  let!(:transaction_result) { conn.transact([{:'db/id' => Dalton::Connection.tempid, attribute => value}]) }
+
+  let(:entity_id) { transaction_result.tempids.values.first }
+
   describe 'data storage, query, and retrieval' do
-
-    let(:attribute) { :'db/doc' }
-    let(:value) { 'This is a test entity.' }
-
-    let!(:transaction_result) { conn.transact([{:'db/id' => Dalton::Connection.tempid, attribute => value}]) }
-
-    let(:entity_id) { transaction_result.tempids.values.first }
 
     let(:query) { [:find, :'?e', :where, [:'?e', attribute, value]] }
     let(:edn_query) { '[:find ?e :where [?e :db/doc "This is a test entity."]]' }
@@ -65,6 +65,26 @@ describe Dalton::Connection do
             expect(error.existing_id).to be > 0
           end
         end
+
+        describe 'in type' do
+          let(:error) do
+            err = nil
+            tempid = Dalton::Connection.tempid(:'db.part/user')
+            begin
+              conn.transact([[:'db/add', tempid, :'user.test/unique-attr', 5]])
+            rescue Dalton::TypeError => e
+              err = e
+            end
+            err
+          end
+
+          it 'contains useful information' do
+            expect(error).to be_a(Dalton::TypeError)
+            expect(error.attribute).to be(:'user.test/unique-attr')
+            expect(error.value).to eql('5') # TODO: this sucks, but they're indistinguishable!
+            expect(error.type).to be(:string)
+          end
+        end
       end
     end
 
@@ -93,6 +113,21 @@ describe Dalton::Connection do
     end
   end
 
+  describe '#tempid?' do
+    subject {Dalton::Connection.tempid?(id)}
+
+    context 'with a temp id' do
+      let (:id) {Dalton::Connection.tempid}
+
+      it { should be true }
+    end
+
+    context 'with a real id' do
+      let (:id) {entity_id}
+
+      it { should be false }
+    end
+  end
 end
 
 

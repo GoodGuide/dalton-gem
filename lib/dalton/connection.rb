@@ -2,36 +2,6 @@ java_import "clojure.lang.Keyword"
 java_import "datomic.Peer"
 
 module Dalton
-  class UniqueConflict < DatomicError
-    # TODO: [jneen] this is terrible, but error handling is not implemented at the moment.
-    # eventually all this data should be accessible via (ex-data e).
-    MESSAGE_RE =
-      %r(^:db[.]error/unique-conflict Unique conflict: :([a-z./-]+), value: (.*?) already held by: (\d+) asserted for: (\d+)$)o
-
-    def self.parse(message)
-      message =~ MESSAGE_RE
-      raise ArgumentError, "invalid format: #{message.inspect}" unless $~
-      new(
-        attribute: $1.to_sym,
-        value: $2,
-        existing_id: Integer($3),
-        new_id: Integer($4),
-      )
-    end
-
-    attr_reader :attribute, :value, :existing_id, :new_id
-    def initialize(opts={})
-      @attribute = opts.fetch(:attribute)
-      @value = opts.fetch(:value)
-      @existing_id = opts.fetch(:existing_id)
-      @new_id = opts.fetch(:new_id)
-    end
-
-    def message
-      "Unique conflict: tried to assign duplicate #@attribute to #@new_id, already held by #@existing_id. value: #@value"
-    end
-  end
-
   class Connection
 
     include Dalton::Datomization
@@ -88,6 +58,8 @@ module Dalton
         case err_data[:'db/error']
         when :'db.error/unique-conflict'
           raise UniqueConflict.parse(cause.getMessage)
+        when :'db.error/wrong-type-for-attribute'
+          raise TypeError.parse(cause.getMessage)
         end
       end
 
@@ -117,6 +89,15 @@ module Dalton
         Peer.tempid(partition, id)
       else
         Peer.tempid(partition)
+      end
+    end
+
+    def self.tempid?(id)
+      0 > case id
+      when Numeric
+        id
+      when Java::DatomicDb::DbId
+        id.get(Utility::kw('idx'))
       end
     end
   end
