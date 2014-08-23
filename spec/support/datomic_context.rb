@@ -1,5 +1,6 @@
 require 'rspec/core/shared_context'
 
+Object.send(:remove_const, :DatomicContext) if Object.const_defined?(:DatomicContext)
 module DatomicContext
   extend RSpec::Core::SharedContext
 
