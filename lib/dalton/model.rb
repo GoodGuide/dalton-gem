@@ -1,6 +1,7 @@
 require 'logger' # stdlib
 
 require 'dalton/model/schema'
+require 'dalton/model/attribute'
 require 'dalton/model/base_finder'
 require 'dalton/model/base_changer'
 require 'dalton/model/validator'
@@ -68,14 +69,6 @@ module Dalton
       attr_reader :partition
       attr_reader :base_attributes
 
-      def interpret_entity(entity)
-        registry_name = entity.get(":#{datomic_type_key}").to_s[1..-1]
-        model = Model.registry.fetch(registry_name) do
-          raise TypeError.new("No such model #{registry_name.inspect}")
-        end
-        model.new(entity)
-      end
-
       def transact(edn)
         Model.logger.info("datomic.transact #{Connection.convert_datoms(edn).to_edn}")
         connection.transact(edn)
@@ -113,8 +106,7 @@ module Dalton
       end
 
       def referenced(name, opts={})
-        type = opts.fetch(:type) { name } # TODO: pluralize?
-        from_rel = opts.fetch(:from) { self.datomic_name }
+        from_rel = opts.delete(:from) { self.datomic_name }
 
         namespace = opts.fetch(:namespace) {
           type.respond_to?(:namespace) ? type.namespace : self.namespace
@@ -125,7 +117,7 @@ module Dalton
       end
 
       def define_attribute(key, datomic_key, opts={})
-        @attributes[key] = datomic_key
+        @attributes[key] = Attribute.new(self, key, opts.merge(datomic_attribute: datomic_key))
         @defaults[key] = opts[:default]
 
         define_method(key) { self[key] }
@@ -180,13 +172,9 @@ module Dalton
     end
 
     def [](key)
-      datomic_key = if key.respond_to? :id
-        key.id
-      else
-        self.class.get_attribute(key)
-      end
+      definition = self.class.get_attribute(key)
 
-      interpret_value(entity.get(datomic_key)) || self.class.defaults.fetch(key)
+      definition.type.load(entity.get(definition.datomic_attribute))
     end
 
     def interpret_value(value)

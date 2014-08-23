@@ -85,7 +85,8 @@ module Dalton
         return enum_for(:interpret_constraints, hash) unless block_given?
 
         hash.each do |key, value|
-          yield [sym('?e'), model.get_attribute(key).to_sym, value]
+          attribute = model.get_attribute(key)
+          yield [sym('?e'), attribute.datomic_attribute, attribute.type.dump(value)]
         end
       end
 

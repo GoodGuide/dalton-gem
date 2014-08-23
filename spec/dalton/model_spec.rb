@@ -17,11 +17,11 @@ describe Dalton::Model do
       attribute :overrideable, :value_type => :string
     end
 
-    attribute :foo, :default => 'foo-default'
+    attribute :foo
     attribute :bar, 'dalton.sample/bar-custom-key'
     attribute :overrideable
-    attribute :parent
-    referenced :children, :type => Sample, :from => :parent
+    attribute :parent, :type => [:ref, Sample]
+    attribute :children, 'dalton.sample/_parent', :type => [:set, [:ref, Sample]]
 
     changers do
       def overrideable=(v)
@@ -65,7 +65,7 @@ describe Dalton::Model do
     describe '.create!' do
       it 'creates a model' do
         assert { model.is_a? Sample }
-        assert { model.foo == 'foo-default' }
+        assert { model.foo == nil }
         assert { model.bar == 'bar-value' }
       end
     end
@@ -79,7 +79,7 @@ describe Dalton::Model do
         assert { next_model.is_a? Sample }
         assert { next_model.foo == 'new-foo-value' }
         assert { next_model.bar == 'bar-value' }
-        assert { model.foo == 'foo-default' }
+        assert { model.foo == nil }
       end
 
       it 'allows `super` in overridden methods' do
@@ -92,7 +92,7 @@ describe Dalton::Model do
       end
     end
 
-    describe '#updated_at', focus: true do
+    describe '#updated_at' do
       it 'returns a Time' do
         assert { model.updated_at.is_a? Time }
       end
@@ -111,7 +111,7 @@ describe Dalton::Model do
         assert { validation_error.is_a? Dalton::Model::ValidationError }
         assert { validation_error.errors.length == 1 }
         assert { validation_error.errors_on(:foo) == ["must not contain the string 'invalid'"] }
-        assert { validation_error.changes.change_in(:foo) == ['foo-default', 'invalid-foo-value'] }
+        assert { validation_error.changes.change_in(:foo) == [nil, 'invalid-foo-value'] }
       end
     end
 
@@ -139,6 +139,12 @@ describe Dalton::Model do
           by_bar = finder.where(:bar => 'bar-value')
           assert { by_bar.first == model }
         end
+
+        it 'works on refs' do
+          next_model = model.change! { |m| m.parent = model }
+          result = next_model.finder.where(:parent => model)
+          assert { result.first == next_model }
+        end
       end
 
       describe 'custom finders' do
@@ -152,9 +158,9 @@ describe Dalton::Model do
     end
 
     describe 'relations' do
-      it 'starts out nil/empty' do
+      it 'starts out empty' do
         assert { model.parent == nil }
-        assert { model.children == [] }
+        assert { model.children.to_a == [] }
       end
 
       it 'sets a one-to-many relation' do
