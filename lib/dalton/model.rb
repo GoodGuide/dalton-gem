@@ -173,6 +173,10 @@ module Dalton
       entity.get(':db/id')
     end
 
+    def at(db)
+      self.class::Finder.new(db).entity(self.id)
+    end
+
     def [](key)
       definition = self.class.get_attribute(key)
 
