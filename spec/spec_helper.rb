@@ -9,6 +9,8 @@ def reload!
   load './lib/dalton.rb'
 
   Dir[File.join(File.dirname(__FILE__), 'support/**/*.rb')].each {|f| load(f)}
+
+  true
 end
 
 reload!
