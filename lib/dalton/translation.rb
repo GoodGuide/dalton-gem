@@ -34,7 +34,9 @@ module Dalton
             value.to_s.to_sym
           when Java::JavaUtil::Set
             Set.new(value.map{|x| from_clj(x)})
-          when Java::Datomic::Entity
+          when Java::JavaUtil::ArrayList
+            value.map { |x| from_clj(x) }
+          when Java::Datomic::Entity, Java::DatomicQuery::EntityMap
             Dalton::Entity.new(value)
           when Java::JavaUtil::Date
             Time.at(value.getTime / 1000).to_datetime

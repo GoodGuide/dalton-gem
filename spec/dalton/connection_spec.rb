@@ -22,14 +22,14 @@ describe Dalton::Connection do
       end
 
       it 'returns a transaction result' do
-        expect(transaction_result.db_before).to be_a(Java::Datomic::Database)
-        expect(transaction_result.db_after).to be_a(Java::Datomic::Database)
+        expect(transaction_result.db_before).to be_a(Dalton::Database)
+        expect(transaction_result.db_after).to be_a(Dalton::Database)
         expect(transaction_result.tx_data).to be_a(Array)
         expect(transaction_result.tempids).to be_a(Hash)
       end
 
       it 'refreshes the database' do
-        expect(db.datomic_db).to equal(transaction_result.db_after)
+        expect(conn.db).to eq(transaction_result.db_after)
       end
 
       describe 'errors' do

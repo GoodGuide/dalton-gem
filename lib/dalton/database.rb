@@ -24,8 +24,7 @@ module Dalton
     end
 
     def entity(entity_id)
-      entity = datomic_db.entity(Translation.from_ruby(entity_id))
-      Translation.from_clj(entity)
+      Entity.new(datomic_db.entity(Translation.from_ruby(entity_id)))
     rescue Java::JavaUtilConcurrent::ExecutionException => e
       raise DatomicError, "Entity retrieval failed: #{e.getMessage}"
     end

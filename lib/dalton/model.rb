@@ -170,7 +170,11 @@ module Dalton
     end
 
     def id
-      entity.get(':db/id')
+      entity.get(:'db/id')
+    end
+
+    def db
+      entity.db
     end
 
     def at(db)
@@ -212,8 +216,8 @@ module Dalton
 
     # TODO: fix this implementation
     def updated_at
-      txid = Peer.q('[:find (max ?t) :in $ ?e :where [?e _ _ ?t]]', entity.db, self.id).first.first
-      Time.at(entity.db.entity(txid).get(':db/txInstant').getTime/1000)
+      txid = db.q('[:find (max ?t) :in $ ?e :where [?e _ _ ?t]]', self.id).first.first
+      db.entity(txid).get(:'db/txInstant').to_time
     end
 
     def changer

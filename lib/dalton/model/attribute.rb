@@ -49,7 +49,7 @@ module Dalton
         end
 
         def invalid_value!(attr, value)
-          raise TypeError, "invalid value for #{attr.datomic_attribute}: #{value.inspect}"
+          raise ::TypeError, "invalid value for #{attr.datomic_attribute}: #{value.inspect}"
         end
 
         class AutoType < Type
@@ -57,7 +57,7 @@ module Dalton
             case value
             when Enumerable
               SetType.new(self)
-            when Java::DatomicQuery::EntityMap
+            when Dalton::Entity
               RefType.new(raise 'TODO')
             when Numeric, String, Symbol, true, false, nil
               Type.new rescue binding.pry
@@ -87,8 +87,8 @@ module Dalton
 
           def load(attr, entity_map)
             return nil if entity_map.nil?
-            registry_name = entity_map.get(":#{attr.model.datomic_type_key}").to_s[1..-1]
-            invalid_value!(attr, entity_map) unless registry_name == @ref_class.datomic_type.to_s
+            registry_name = entity_map.get(attr.model.datomic_type_key)
+            invalid_value!(attr, entity_map) unless registry_name == @ref_class.datomic_type
             @ref_class.new(entity_map)
           end
 

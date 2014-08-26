@@ -23,7 +23,7 @@ module Dalton
 
       def inspect
         translated = Translation.from_ruby(all_constraints).to_edn[1..-2]
-        "#<#{self.class.name} ##{db.basisT} :where #{translated}>"
+        "#<#{self.class.name} ##{db.basis_t} :where #{translated}>"
       end
 
       attr_reader :db, :constraints
@@ -49,7 +49,7 @@ module Dalton
       def entity(id)
         entity = @db.entity(id)
 
-        unless entity.get(":#{model.datomic_type_key}").to_s[1..-1] == model.datomic_type.to_s
+        unless entity.get(model.datomic_type_key) == model.datomic_type
           raise NotFound.new(model, id)
         end
 
@@ -93,7 +93,7 @@ module Dalton
       def q(query)
         translated_query = Translation.from_ruby(query)
         Model.logger.info("datomic.q #{translated_query.to_edn}")
-        result = Peer.q(translated_query, @db)
+        result = @db.q(translated_query)
         Translation.from_clj(result)
       end
     end
