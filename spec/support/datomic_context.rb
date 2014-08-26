@@ -1,20 +1,19 @@
-require 'rspec/core/shared_context'
-
-Object.send(:remove_const, :DatomicContext) if Object.const_defined?(:DatomicContext)
 module DatomicContext
-  extend RSpec::Core::SharedContext
+  def self.included(base)
+    base.module_eval do
+      let(:uri) { 'datomic:mem://spec' }
+      # let(:uri) { 'datomic:dev://localhost:4334/spec' }
+      let(:conn) { Dalton::Connection.new(uri) }
+      let(:db) { conn.refresh }
 
-  let(:uri) { 'datomic:mem://spec' }
-  # let(:uri) { 'datomic:dev://localhost:4334/spec' }
-  let(:conn) { Dalton::Connection.new(uri) }
-  let(:db) { conn.refresh }
+      before do
+        conn.create
+        conn.connect
+      end
 
-  before do
-    conn.create
-    conn.connect
-  end
-
-  after do
-    conn.destroy
+      after do
+        conn.destroy
+      end
+    end
   end
 end
