@@ -7,6 +7,7 @@ describe Dalton::Model do
     m.uri = 'datomic:mem://spec'
   end
 
+  Object.send(:remove_const, :Sample) if defined?(Sample)
   class Sample
     include Dalton::Model
 
