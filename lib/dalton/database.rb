@@ -10,6 +10,10 @@ module Dalton
 
     attr_reader :datomic_db
 
+    def ==(other)
+      datomic_db == other.datomic_db
+    end
+
     def q(query, *args)
       translated_query = Translation.from_ruby(query)
       # STDERR.puts "translated_query=#{translated_query.to_edn}"
