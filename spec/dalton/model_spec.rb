@@ -14,11 +14,13 @@ describe Dalton::Model do
     schema do
       attribute :foo, :value_type => :string
       attribute :'bar-custom-key', :value_type => :string, :doc => "the #bar attribute"
+      attribute :name, :value_type => :string, :unique => :value
       attribute :parent, :value_type => :ref
       attribute :overrideable, :value_type => :string
     end
 
     attribute :foo
+    attribute :name
     attribute :bar, 'dalton.sample/bar-custom-key'
     attribute :overrideable
     attribute :parent, :type => [:ref, Sample]

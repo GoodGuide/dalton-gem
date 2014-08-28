@@ -88,14 +88,18 @@ module Dalton
       end
 
       def attribute(attr_key, opts={})
-        edn(
+        config = {
           :'db/id' => opts.fetch(:id) { Peer.tempid(kw('db.part/db')) },
           :'db/ident' => kw(opts.fetch(:ident) { key(model.datomic_name, attr_key) }),
           :'db/valueType' => :"db.type/#{opts.fetch(:value_type)}",
           :'db/cardinality' => :"db.cardinality/#{opts.fetch(:cardinality, :one)}",
           :'db/doc' => opts.fetch(:doc) { "The #{attr_key} attribute" },
           :'db.install/_attribute' => :'db.part/db',
-        )
+        }
+
+        config[:'db/unique'] = :"db.unique/#{opts[:unique]}" if opts[:unique]
+
+        edn(config)
       end
 
       def install!
