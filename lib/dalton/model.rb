@@ -135,7 +135,9 @@ module Dalton
       end
 
       def get_attribute(key)
-        @attributes.fetch(key)
+        @attributes.fetch(key) do
+          raise ArgumentError, "Undefined attribute #{key} for #{self}"
+        end
       end
 
       def finders(&b)
