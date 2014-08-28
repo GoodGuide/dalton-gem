@@ -21,6 +21,22 @@ module Dalton
       end
     end
 
+    class TransactionValidationError < ValidationError
+      def initialize(changes, datomic_error)
+        @changes = changes
+        @datomic_error = datomic_error
+      end
+
+      def errors
+        # TODO: translate this key
+        [@datomic_error.attribute, @datomic_error.message]
+      end
+
+      def errors_on?(key)
+        changes.model.get_attribute(key).datomic_attribute == @datomic_error.attribute
+      end
+    end
+
     class Validator
       # a definition of a validator.  the block gets run in the context of
       # a Scope, and may call `invalid!` with optional attributes and an

@@ -82,6 +82,8 @@ module Dalton
         result = model.transact(generate_datoms)
         @id = result.resolve_tempid(@id) unless @id.is_a? Fixnum
         model.new(result.db_after.entity(@id))
+      rescue Dalton::TypeError, Dalton::UniqueConflict => e
+        raise TransactionValidationError.new(self, e)
       end
 
       def validate!

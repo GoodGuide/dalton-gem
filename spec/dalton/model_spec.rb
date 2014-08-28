@@ -110,19 +110,37 @@ describe Dalton::Model do
     end
 
     describe 'validations' do
-      let(:validation_error) do
-        rescuing {
-          model.change! do |m|
-            m.foo = 'invalid-foo-value'
-          end
-        }
+      describe 'on values' do
+        let(:validation_error) do
+          rescuing {
+            model.change! do |m|
+              m.foo = 'invalid-foo-value'
+            end
+          }
+        end
+
+        it 'raises a validation error' do
+          assert { validation_error.is_a? Dalton::Model::ValidationError }
+          assert { validation_error.errors.length == 1 }
+          assert { validation_error.errors_on(:foo) == ["must not contain the string 'invalid'"] }
+          assert { validation_error.changes.change_in(:foo) == [nil, 'invalid-foo-value'] }
+        end
       end
 
-      it 'raises a validation error' do
-        assert { validation_error.is_a? Dalton::Model::ValidationError }
-        assert { validation_error.errors.length == 1 }
-        assert { validation_error.errors_on(:foo) == ["must not contain the string 'invalid'"] }
-        assert { validation_error.changes.change_in(:foo) == [nil, 'invalid-foo-value'] }
+      describe 'on transactions' do
+        before do
+          model.change! { |m| m.name = 'unique-name' }
+        end
+
+        let(:validation_error) do
+          rescuing do
+            Sample.create! { |m| m.name = 'unique-name' }
+          end
+        end
+
+        it 'raises a validation error' do
+          assert { validation_error.is_a? Dalton::Model::ValidationError }
+        end
       end
     end
 
