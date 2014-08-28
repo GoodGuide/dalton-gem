@@ -1,9 +1,6 @@
 java_import "clojure.lang.Keyword"
 java_import "datomic.Peer"
 
-require_relative 'datomization'
-require_relative 'exception'
-
 module Dalton
   class Connection
 

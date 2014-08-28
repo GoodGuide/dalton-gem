@@ -1,10 +1,6 @@
 java_import "clojure.lang.PersistentHashSet"
 java_import "clojure.lang.Keyword"
 
-java_import "clojure.lang.Keyword"
-
-require 'zweikopf'
-
 module Zweikopf
   module Primitive
     def self.is_primitive_type?(obj) # monkey patch to remove DateTime from list of primitives and allow them to be converted. :-/
@@ -38,7 +34,9 @@ module Dalton
             value.to_s.to_sym
           when Java::JavaUtil::Set
             Set.new(value.map{|x| from_clj(x)})
-          when Java::Datomic::Entity
+          when Java::JavaUtil::ArrayList
+            value.map { |x| from_clj(x) }
+          when Java::Datomic::Entity, Java::DatomicQuery::EntityMap
             Dalton::Entity.new(value)
           when Java::JavaUtil::Date
             Time.at(value.getTime / 1000).to_datetime
