@@ -107,17 +107,6 @@ module Dalton
         define_attribute(attr, datomic_key, opts)
       end
 
-      def referenced(name, opts={})
-        from_rel = opts.delete(:from) { self.datomic_name }
-
-        namespace = opts.fetch(:namespace) {
-          type.respond_to?(:namespace) ? type.namespace : self.namespace
-        }
-
-        type = type.datomic_name if type.respond_to? :datomic_name
-        define_attribute name, "#{namespace}.#{type}/_#{from_rel}", :default => []
-      end
-
       def define_attribute(key, datomic_key, opts={})
         @attributes[key] = Attribute.new(self, key, opts.merge(datomic_attribute: datomic_key))
         @defaults[key] = opts[:default]
