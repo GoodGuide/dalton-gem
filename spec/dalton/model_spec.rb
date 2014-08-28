@@ -236,14 +236,14 @@ describe Dalton::Model do
       it 'changes sub-entities' do
         first_model = model.change! do |m|
           m.foo = 'child'
-          m.change_or_create(:parent) { |p| p.foo = 'parent' }
+          m.change_ref(:parent) { |p| p.foo = 'parent' }
         end
 
         assert { first_model.parent }
         assert { first_model.parent.foo == 'parent' }
 
         next_model = first_model.change! do |m|
-          m.change_or_create(:parent) { |p| p.foo = 'parent-changed' }
+          m.change_ref(:parent) { |p| p.foo = 'parent-changed' }
         end
 
         assert { next_model.parent.foo == 'parent-changed' }

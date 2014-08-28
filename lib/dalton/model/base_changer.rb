@@ -18,7 +18,7 @@ module Dalton
         self
       end
 
-      def change_or_create(key, &b)
+      def change_ref(key, &b)
         attribute = model.get_attribute(key)
         type = attribute.type
 
