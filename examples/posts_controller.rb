@@ -1,8 +1,8 @@
 class ApplicationController
   include Dalton::Model::HasDatabase
 
-  def datomic_connection
-    App.datomic_connection
+  def datomic_uri
+    App.datomic_uri
   end
 
   before_filter :refresh_datomic!
@@ -14,7 +14,6 @@ class ApplicationController
   rescue_from Dalton::ValidationError do |e|
     render_403 "#{e.changes.model} was invalid: #{e.errors.inspect}"
   end
-
 end
 
 class PostsController < ApplicationController
@@ -31,7 +30,7 @@ class PostsController < ApplicationController
     author = find(User).entity(params[:author])
     @post = Post.create! do |p|
       p.content = params[:content]
-      p.author = author.change do |a|
+      p.change_ref(:author) do |a|
         a.last_post = p
       end
     end
