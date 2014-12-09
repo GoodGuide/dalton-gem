@@ -52,6 +52,12 @@ module Dalton
           raise ::TypeError, "invalid value for #{attr.datomic_attribute}: #{value.inspect}"
         end
 
+        class Scalar < Type
+          def inspect
+            "(scalar)"
+          end
+        end
+
         class AutoType < Type
           def type_from_value(value)
             case value
@@ -60,7 +66,7 @@ module Dalton
             when Dalton::Entity
               RefType.new(raise 'TODO')
             when Numeric, String, Symbol, true, false, nil
-              Type.new rescue binding.pry
+              Scalar.new
             else
               raise TypeError.new("unknown value type: #{value.inspect}")
             end
@@ -77,12 +83,20 @@ module Dalton
           def datoms_for(attr, changer, value, &b)
             type_from_value(value).datoms_for(attr, changer, value, &b)
           end
+
+          def inspect
+            "(auto)"
+          end
         end
 
         class RefType < Type
           attr_reader :ref_class
           def initialize(ref_class)
             @ref_class = ref_class
+          end
+
+          def inspect
+            "(ref #{@ref_class.name})"
           end
 
           def load(attr, entity_map)
@@ -108,6 +122,10 @@ module Dalton
         class SetType < Type
           def initialize(element_type)
             @element_type = Type.for(element_type)
+          end
+
+          def inspect
+            "(set #{@element_type.inspect})"
           end
 
           def dump(attr, value)

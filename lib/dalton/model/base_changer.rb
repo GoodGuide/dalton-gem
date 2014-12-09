@@ -23,7 +23,7 @@ module Dalton
         type = attribute.type
 
         unless type.respond_to? :ref_class
-          raise ::TypeError, "change_or_create only works on refs"
+          raise ::TypeError, "change_ref only works on refs - #{key} is a #{type.inspect} is not a ref"
         end
 
         self[key] = self[key] ? self[key].change(&b) : type.ref_class.create(&b)
