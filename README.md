@@ -29,6 +29,7 @@ connection.db.query([:find, '?e', :where, ['?e', :'db/ident', :'hello/world']])
 * Test-drive `Dalton::Model`'s design and fill in missing features
 * Remove the internal `@db` reference from `Dalton::Connection`
 * Improve naming of `Dalton::Utility` functions and consider extending / separating
+* Non-Jruby support, potentially through transit and a local peer server
 
 [john-dalton-img]: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/John_Dalton_by_Charles_Turner.jpg/240px-John_Dalton_by_Charles_Turner.jpg
 [john-dalton-wiki]: https://en.wikipedia.org/wiki/John_Dalton
