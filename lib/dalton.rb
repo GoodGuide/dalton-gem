@@ -23,7 +23,6 @@ load load_dir.join('dalton/entity.rb')
 load load_dir.join('dalton/transaction_result.rb')
 load load_dir.join('dalton/attribute.rb')
 load load_dir.join('dalton/translation.rb')
-load load_dir.join('dalton/model.rb')
 
 class Object
   def to_edn
