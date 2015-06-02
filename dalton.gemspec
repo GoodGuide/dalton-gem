@@ -18,4 +18,6 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_runtime_dependency 'zweikopf', '0.4.0'
+
+  s.license = 'EPL'
 end
